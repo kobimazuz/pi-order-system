@@ -1,0 +1,360 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// משתמשים
+model Profile {
+  id            String       @id @db.Uuid
+  email         String       @unique
+  full_name     String?
+  company_name  String?
+  phone         String?
+  address       String?
+  created_at    DateTime     @default(now())
+  last_login    DateTime     @default(now())
+  role          String       @default("user") // אפשרויות: user, admin, manager
+  status        String       @default("active") // אפשרויות: active, inactive, suspended
+  
+  // Relations
+  orders        Order[]
+  categories    Category[]
+  colors        Color[]
+  sizes         Size[]
+  materials     Material[]
+  suppliers     Supplier[]
+  subscription  Subscription?
+  invoices      Invoice[]
+  products      Product[]
+  settings      Settings[]
+  pis           PI[]
+  customers     Customer[]
+
+  @@map("profiles")
+}
+
+// מנויים
+model Subscription {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @unique @db.Uuid
+  planId      String    @db.Uuid
+  status      String    @default("active") // אפשרויות: active, expired, canceled, pending
+  start_date  DateTime  @default(now())
+  end_date    DateTime?
+  auto_renew  Boolean   @default(true)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  
+  // Relations
+  user        Profile   @relation(fields: [userId], references: [id])
+  plan        Plan      @relation(fields: [planId], references: [id])
+
+  @@map("subscriptions")
+}
+
+// תוכניות מנוי
+model Plan {
+  id          String         @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  price       Float
+  duration    Int           // במספר ימים
+  features    String[]
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+  
+  // Relations
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+// חשבוניות
+model Invoice {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @db.Uuid
+  amount         Float
+  status         String    @default("pending")
+  payment_date   DateTime?
+  due_date       DateTime
+  invoice_number String    @unique
+  created_at     DateTime  @default(now())
+  
+  // Relations
+  user           Profile   @relation(fields: [userId], references: [id])
+
+  @@map("invoices")
+}
+
+// קטגוריות
+model Category {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  code        String    // פורמט: CAT001
+  name        String
+  description String?
+  parent      String?   @db.Uuid
+  status      String    @default("active") // אפשרויות: active, inactive
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  
+  // Relations
+  user        Profile   @relation(fields: [userId], references: [id])
+  products    Product[]
+  children    Category[] @relation("CategoryToCategory")
+  parent_category Category? @relation("CategoryToCategory", fields: [parent], references: [id])
+
+  @@unique([userId, code])
+  @@map("categories")
+}
+
+// צבעים
+model Color {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  code        String    // פורמט: COL001
+  name        String
+  hex_code    String
+  status      String    @default("active") // אפשרויות: active, inactive
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  
+  // Relations
+  user        Profile   @relation(fields: [userId], references: [id])
+  products    Product[]
+
+  @@unique([userId, code])
+  @@map("colors")
+}
+
+// מידות
+model Size {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  code        String    // פורמט: SIZ001
+  name        String
+  description String?
+  category    String?   // קטגוריית מידה (למשל: בגדים, נעליים)
+  status      String    @default("active") // אפשרויות: active, inactive
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  
+  // Relations
+  user        Profile   @relation(fields: [userId], references: [id])
+  products    Product[]
+
+  @@unique([userId, code])
+  @@map("sizes")
+}
+
+// חומרים
+model Material {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  code        String
+  name        String
+  description String?
+  status      String    @default("active")
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  
+  // Relations
+  user        Profile   @relation(fields: [userId], references: [id])
+  products    Product[]
+
+  @@unique([userId, code])
+  @@map("materials")
+}
+
+// ספקים
+model Supplier {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @db.Uuid
+  code         String    // פורמט: SUP001
+  name         String
+  contact_name String
+  email        String
+  phone        String
+  address      String
+  status       String    @default("active") // אפשרויות: active, inactive
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  
+  // Relations
+  user         Profile   @relation(fields: [userId], references: [id])
+  products     Product[]
+
+  @@unique([userId, code])
+  @@map("suppliers")
+}
+
+// מוצרים
+model Product {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @db.Uuid
+  sku             String    // פורמט: HY1XXX
+  name            String
+  description     String?
+  image_url       String?
+  units_per_pack  Int      @default(1)
+  packing_info    String?
+  units_per_carton Int     @default(1)
+  price_per_unit  Float
+  status          String    @default("active") // אפשרויות: active, inactive, out_of_stock
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  
+  // Relations
+  user            Profile     @relation(fields: [userId], references: [id])
+  category        Category    @relation(fields: [categoryId], references: [id])
+  supplier        Supplier    @relation(fields: [supplierId], references: [id])
+  colors          Color[]
+  sizes           Size[]
+  materials       Material[]
+  orderItems      OrderItem[]
+  piItems         PIItem[]
+  
+  // Foreign Keys
+  categoryId      String      @db.Uuid
+  supplierId      String      @db.Uuid
+
+  @@unique([userId, sku])
+  @@map("products")
+}
+
+// הזמנות
+model Order {
+  id           String      @id @default(uuid()) @db.Uuid
+  userId       String      @db.Uuid
+  pi_number    String      @unique // פורמט: PI-YYYYMMDD-XXX
+  customer     String
+  total_items  Int         @default(0)
+  total_units  Int         @default(0)
+  total_amount Float
+  status       String      @default("pending") // אפשרויות: pending, confirmed, canceled, completed
+  notes        String?
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+  
+  // Relations
+  user         Profile     @relation(fields: [userId], references: [id])
+  orderItems   OrderItem[]
+
+  @@map("orders")
+}
+
+// פריטי הזמנה
+model OrderItem {
+  id          String    @id @default(uuid()) @db.Uuid
+  orderId     String    @db.Uuid
+  productId   String    @db.Uuid
+  quantity    Int       // כמות באריזות
+  total_units Int       // כמות כוללת = quantity * units_per_pack
+  price       Float     // מחיר ליחידה * total_units
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  
+  // Relations
+  order       Order     @relation(fields: [orderId], references: [id])
+  product     Product   @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+// הגדרות מערכת
+model Settings {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  key       String   // מפתחות אפשריים: default_customer, default_currency, pi_number_format, etc.
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  user      Profile  @relation(fields: [userId], references: [id])
+
+  @@unique([userId, key])
+  @@map("settings")
+}
+
+// הזמנות PI
+model PI {
+  id           String      @id @default(uuid()) @db.Uuid
+  userId       String      @db.Uuid
+  customerId   String      @db.Uuid
+  language     String      @default("he")
+  status       String      @default("draft") // אפשרויות: draft, confirmed, canceled, completed
+  notes        String?
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+  
+  // Relations
+  user         Profile     @relation(fields: [userId], references: [id])
+  customer     Customer    @relation(fields: [customerId], references: [id])
+  items        PIItem[]
+
+  @@map("pis")
+}
+
+// פריטי הזמנת PI
+model PIItem {
+  id            String    @id @default(uuid()) @db.Uuid
+  piId          String    @db.Uuid
+  productId     String    @db.Uuid
+  quantity      Int
+  price_per_unit Float
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  
+  // Relations
+  pi            PI        @relation(fields: [piId], references: [id])
+  product       Product   @relation(fields: [productId], references: [id])
+
+  @@map("pi_items")
+}
+
+// לקוחות
+model Customer {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  name        String
+  email       String?
+  phone       String?
+  address     String?
+  status      String    @default("active") // אפשרויות: active, inactive
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  
+  // Relations
+  user        Profile   @relation(fields: [userId], references: [id])
+  pis         PI[]
+
+  @@map("customers")
+}
+
+model ImportLog {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String
+  filename    String
+  total_rows  Int
+  success     Int
+  errors      Int
+  status      String
+  metadata    String?  // מידע נוסף בפורמט JSON
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@map("import_logs")
+}
