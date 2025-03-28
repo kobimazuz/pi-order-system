@@ -1,75 +1,140 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
+import { AuthError } from '@supabase/supabase-js'
+
+function clearSupabaseCookies(response: NextResponse) {
+  const supabaseCookies = [
+    'sb-access-token',
+    'sb-refresh-token',
+    'supabase-auth-token',
+    'sb-provider-token',
+    'sb-auth-token',
+    'supabase-auth-token-code-verifier'
+  ]
+  
+  supabaseCookies.forEach(name => {
+    response.cookies.set({
+      name,
+      value: '',
+      maxAge: 0,
+      path: '/',
+      sameSite: 'lax',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production'
+    })
+  })
+  
+  response.headers.append('Set-Cookie', 'clear_storage=true; path=/; max-age=5')
+}
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
+  const requestUrl = new URL(request.url)
+  const code = requestUrl.searchParams.get('code')
+  
+  if (!code) {
+    console.error('קוד אימות חסר בכתובת הקולבק')
+    return NextResponse.redirect(new URL('/auth/login?error=missing_code', requestUrl.origin))
+  }
+
   try {
-    const requestUrl = new URL(request.url)
-    const code = requestUrl.searchParams.get('code')
-    console.log('Auth callback initiated with code:', code ? 'present' : 'missing')
-
-    if (code) {
-      const supabase = await createClient()
-      
-      const response = NextResponse.redirect(new URL('/dashboard', request.url))
-
-      console.log('Exchanging code for session')
-      const { data: { session }, error: sessionError } = await supabase.auth.exchangeCodeForSession(code)
-      
-      if (sessionError) {
-        console.error('Auth error details:', sessionError)
-        return NextResponse.redirect(new URL('/auth?error=auth_callback_error', request.url))
-      }
-
-      if (session) {
-        try {
-          // בדיקה אם המשתמש קיים
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-
-          if (profileError || !profile) {
-            // יצירת פרופיל חדש למשתמש
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .upsert([
-                {
-                  id: session.user.id,
-                  email: session.user.email,
-                  full_name: session.user.user_metadata?.full_name || '',
-                  avatar_url: session.user.user_metadata?.avatar_url || '',
-                  role: 'user',
-                  status: 'active',
-                  last_login: new Date().toISOString(),
-                  created_at: new Date().toISOString()
-                }
-              ], {
-                onConflict: 'id'
-              })
-
-            if (insertError) {
-              console.error('Error creating profile:', insertError)
-              // ממשיכים למרות השגיאה כי המשתמש כבר מחובר
+    const response = NextResponse.redirect(new URL('/dashboard', requestUrl.origin))
+    const cookieStore = await cookies()
+    
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            const value = cookieStore.get(name)?.value
+            if (!value) return undefined
+            try {
+              const parsed = JSON.parse(decodeURIComponent(value))
+              if (typeof parsed === 'string' && parsed.startsWith('base64-')) {
+                return atob(parsed.replace('base64-', ''))
+              }
+              return parsed
+            } catch {
+              return value
             }
-          }
-        } catch (error) {
-          console.error('Error checking user profile:', error)
-          // ממשיכים למרות השגיאה כי המשתמש כבר מחובר
+          },
+          set(name: string, value: string, options: any) {
+            try {
+              response.cookies.set({
+                name,
+                value,
+                ...options,
+                path: '/',
+                sameSite: 'lax',
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production'
+              })
+            } catch (error) {
+              console.error('שגיאה בהגדרת קוקי:', error)
+            }
+          },
+          remove(name: string, options: any) {
+            try {
+              response.cookies.set({
+                name,
+                value: '',
+                ...options,
+                path: '/',
+                maxAge: 0,
+                sameSite: 'lax',
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production'
+              })
+            } catch (error) {
+              console.error('שגיאה במחיקת קוקי:', error)
+            }
+          },
+        },
+      }
+    )
+    
+    try {
+      console.log('Cookies:', cookieStore.getAll());
+      const verifier = cookieStore.get('sb-yyrlrztrunxatigbvcfj-auth-token-code-verifier')?.value;
+      console.log('Raw code verifier from cookie:', verifier);
+      let finalVerifier = verifier;
+      if (verifier) {
+        const cleanValue = verifier.replace(/^"|"$/g, '');
+        console.log('Clean code verifier:', cleanValue);
+        
+        if (cleanValue.startsWith('base64-base64-')) {
+          finalVerifier = cleanValue.replace('base64-base64-', '');
+        } else if (cleanValue.startsWith('base64-')) {
+          finalVerifier = cleanValue.slice(7);
+        } else {
+          finalVerifier = cleanValue;
         }
       }
+      console.log('Final code verifier sent to Supabase:', finalVerifier);
+      
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+      
+      if (error) {
+        console.error('שגיאה בהחלפת קוד:', error)
+        console.log('מפנה להתחברות מחדש עם ניקוי מלא')
+        const cleanResponse = NextResponse.redirect(new URL('/auth/login?refresh=true', requestUrl.origin))
+        clearSupabaseCookies(cleanResponse)
+        return cleanResponse
+      }
 
-      console.log('Auth successful, redirecting to dashboard')
+      console.log('סשן נוצר בהצלחה')
       return response
+    } catch (error) {
+      const sessionError = error as AuthError | Error
+      console.error('שגיאה בהחלפת קוד אימות לסשן:', sessionError)
+      return NextResponse.redirect(new URL('/auth/login?refresh=true&error=' + 
+        encodeURIComponent(sessionError.message || 'session_error'), requestUrl.origin))
     }
-
-    console.log('No code provided in callback')
-    return NextResponse.redirect(new URL('/auth?error=no_code', request.url))
   } catch (error) {
-    console.error('Callback error details:', error)
-    return NextResponse.redirect(new URL('/auth?error=unknown_error', request.url))
+    console.error('שגיאה כללית בתהליך הקולבק:', error)
+    return NextResponse.redirect(new URL('/auth/login?error=general_error', requestUrl.origin))
   }
-} 
+}

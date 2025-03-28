@@ -33,18 +33,18 @@ export function ReportExport() {
   }
 
   return (
-    <div className="space-y-4">
-      <Button variant="outline" className="w-full justify-start" onClick={() => handleExport("XLSX")}>
+    <div className="flex gap-2">
+      <Button variant="outline" onClick={() => handleExport("XLSX")}>
         <FileSpreadsheet className="mr-2 h-4 w-4" />
         Excel
       </Button>
 
-      <Button variant="outline" className="w-full justify-start" onClick={() => handleExport("PDF")}>
+      <Button variant="outline" onClick={() => handleExport("PDF")}>
         <Download className="mr-2 h-4 w-4" />
         PDF
       </Button>
 
-      <Button variant="outline" className="w-full justify-start" onClick={() => handleExport("CSV")}>
+      <Button variant="outline" onClick={() => handleExport("CSV")}>
         <Download className="mr-2 h-4 w-4" />
         CSV
       </Button>

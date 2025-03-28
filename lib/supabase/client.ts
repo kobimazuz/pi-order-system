@@ -10,6 +10,11 @@ export const getSupabaseBrowserClient = () => {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
+        auth: {
+          flowType: 'pkce',
+          detectSessionInUrl: false,
+          persistSession: true,
+        },
         cookies: {
           get(name: string) {
             if (typeof document === 'undefined') return ''
@@ -20,7 +25,11 @@ export const getSupabaseBrowserClient = () => {
             const value = cookie.split('=')[1]
             if (!value) return ''
             try {
-              return JSON.parse(decodeURIComponent(value))
+              const parsed = JSON.parse(decodeURIComponent(value))
+              if (typeof parsed === 'string' && parsed.startsWith('base64-')) {
+                return atob(parsed.replace('base64-', ''))
+              }
+              return parsed
             } catch {
               return value
             }
@@ -28,10 +37,14 @@ export const getSupabaseBrowserClient = () => {
           set(name: string, value: string, options: { path?: string; domain?: string; maxAge?: number; secure?: boolean }) {
             if (typeof document === 'undefined') return
             let cookieValue = value
-            try {
-              cookieValue = JSON.stringify(value)
-            } catch {
-              // If value is already a string, use it as is
+            if (name.includes('auth-token-code-verifier')) {
+              cookieValue = JSON.stringify(`base64-${btoa(value)}`)
+            } else {
+              try {
+                cookieValue = JSON.stringify(value)
+              } catch {
+                // If value is already a string, use it as is
+              }
             }
             document.cookie = `${name}=${encodeURIComponent(cookieValue)}; path=${options.path || '/'}${options.domain ? `; domain=${options.domain}` : ''}${options.maxAge ? `; max-age=${options.maxAge}` : ''}${options.secure ? '; secure' : ''}`
           },
@@ -45,4 +58,4 @@ export const getSupabaseBrowserClient = () => {
   }
 
   return supabaseInstance
-} 
+}

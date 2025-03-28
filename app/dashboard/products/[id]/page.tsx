@@ -193,6 +193,12 @@ async function getData(id: string) {
     redirect("/sign-in")
   }
 
+  // וידוא שה-ID הוא UUID תקין
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    notFound()
+  }
+
   const product = await prisma.product.findUnique({
     where: {
       id,
@@ -224,8 +230,8 @@ async function getData(id: string) {
 }
 
 // דף ראשי
-export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function ProductPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const data = await getData(id);
   const session = await auth()
   if (!session?.user?.id) {

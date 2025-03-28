@@ -1,3 +1,6 @@
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ShoppingCart, DollarSign, Users, TrendingUp } from "lucide-react"
@@ -5,22 +8,64 @@ import { ProductsTable } from "@/components/products-table"
 import { OrdersTable } from "@/components/orders-table"
 import { SalesStatisticsChart } from "@/app/components/statistics-chart"
 import { prisma } from "@/lib/prisma"
-import { auth } from "@clerk/nextjs/server"
-import { redirect } from "next/navigation"
 import { Suspense } from "react"
 import { LoadingSpinner } from "@/components/ui/loading"
-import { Prisma, Product, Category, Supplier } from "@prisma/client"
+
+// הגדרת טיפוסים מותאמים אישית
+interface Product {
+  id: string;
+  userId: string;
+  sku: string;
+  name: string;
+  description?: string | null;
+  image_url?: string | null;
+  units_per_pack: number;
+  packing_info?: string | null;
+  units_per_carton: number;
+  price_per_unit: number;
+  status: string;
+  categoryId: string;
+  supplierId: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+interface Category {
+  id: string;
+  userId: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  parent?: string | null;
+  status: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+interface Supplier {
+  id: string;
+  userId: string;
+  code: string;
+  name: string;
+  contact_name: string;
+  email: string;
+  phone: string;
+  address: string;
+  status: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+interface ProductWithRelations extends Product {
+  category: Category;
+  supplier: Supplier;
+  _count: {
+    orders: number;
+  }
+}
 
 // מגדיר את הדף כדינמי
 export const dynamic = 'force-dynamic'
-
-interface ProductWithRelations extends Product {
-  category: Category
-  supplier: Supplier
-  _count: {
-    orders: number
-  }
-}
 
 // פונקציית שליפת נתונים
 async function getDashboardData(userId: string) {
@@ -114,7 +159,7 @@ async function getDashboardData(userId: string) {
         revenue: todayOrders._sum.total_amount || 0,
         visits: todayVisits
       },
-      topProducts: topProducts.map(product => ({
+      topProducts: topProducts.map((product: any) => ({
         ...product,
         _count: {
           orders: product._count.orderItems
@@ -133,12 +178,27 @@ async function getDashboardData(userId: string) {
 }
 
 export default async function Dashboard() {
-  const session = await auth()
-  if (!session?.userId) {
-    redirect("/sign-in")
+  const cookieStore = await cookies() // הוספת await כאן
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set() {}, // לא נדרש כאן
+        remove() {}, // לא נדרש כאן
+      },
+    }
+  )
+
+  const { data: { user }, error } = await supabase.auth.getUser()
+  if (error || !user) {
+    redirect("/auth/login")
   }
   
-  const data = await getDashboardData(session.userId)
+  const data = await getDashboardData(user.id)
   
   return (
     <div className="space-y-6">
@@ -256,4 +316,3 @@ export default async function Dashboard() {
     </div>
   )
 }
-

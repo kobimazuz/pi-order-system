@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/client'
+import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { deleteCookie, getCookies } from 'cookies-next'
 
 export const AuthService = {
@@ -26,9 +26,11 @@ export const AuthService = {
       })
       
       // התנתקות מסופרבייס בצד הלקוח
-      const supabase = createClient()
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
+      const supabase = getSupabaseBrowserClient()
+      if (supabase) {
+        const { error } = await supabase.auth.signOut()
+        if (error) throw error
+      }
 
       // קצת זמן לוודא שהפעולות הושלמו
       await new Promise(resolve => setTimeout(resolve, 300))
@@ -45,7 +47,12 @@ export const AuthService = {
 
   async refreshSession() {
     try {
-      const supabase = createClient()
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase) {
+        window.location.href = '/landing'
+        return null
+      }
+      
       const { data: { session }, error } = await supabase.auth.getSession()
       
       if (error) throw error
@@ -66,7 +73,9 @@ export const AuthService = {
 
   async getCurrentUser() {
     try {
-      const supabase = createClient()
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase) return null
+      
       const { data: { user }, error } = await supabase.auth.getUser()
       
       if (error) throw error

@@ -14,16 +14,21 @@ import {
   Truck,
   Upload,
   LogOut,
+  FolderTree,
+  Menu,
 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import type { User } from "@/types"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 
 export default function Sidebar() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
+  const isMobile = useIsMobile()
 
   if (!user || pathname === "/landing" || pathname === "/auth") {
     return null
@@ -32,18 +37,19 @@ export default function Sidebar() {
   const menuItems = [
     { name: "דשבורד", href: "/dashboard", icon: LayoutDashboard },
     { name: "מוצרים", href: "/dashboard/products", icon: Package },
+    { name: "משתני מערכת", href: "/dashboard/variables", icon: FolderTree },
     { name: "הזמנות", href: "/dashboard/orders", icon: ClipboardList },
     { name: "יצירת PI", href: "/dashboard/create-pi", icon: FileSpreadsheet },
     { name: "ספקים", href: "/dashboard/suppliers", icon: Truck },
     { name: "ייבוא בבולק", href: "/dashboard/bulk-import", icon: Upload },
     { name: "דוחות", href: "/dashboard/reports", icon: BarChart3 },
-    { name: "ניהול משתמשים", href: "/dashboard/users", icon: Users },
+    { name: "פרופיל משתמש", href: "/dashboard/profile", icon: Users },
     { name: "תמיכה", href: "/dashboard/support", icon: HelpCircle },
     { name: "הגדרות", href: "/dashboard/settings", icon: Settings },
   ]
 
-  return (
-    <div className="w-64 bg-white border-l border-gray-200 h-full flex flex-col">
+  const SidebarContent = () => (
+    <div className="h-full flex flex-col">
       <div className="p-4 border-b border-gray-200 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-primary">מערכת PI</h1>
         <ThemeToggle />
@@ -91,6 +97,30 @@ export default function Sidebar() {
           התנתק
         </Button>
       </div>
+    </div>
+  )
+
+  if (isMobile) {
+    return (
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button variant="ghost" size="icon">
+            <Menu className="h-6 w-6" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="right" className="w-[300px] p-0">
+          <SheetHeader className="sr-only">
+            <SheetTitle>תפריט ניווט</SheetTitle>
+          </SheetHeader>
+          <SidebarContent />
+        </SheetContent>
+      </Sheet>
+    )
+  }
+
+  return (
+    <div className="w-64 bg-white border-l border-gray-200 h-full">
+      <SidebarContent />
     </div>
   )
 }

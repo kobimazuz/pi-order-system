@@ -52,7 +52,7 @@ const getPageData = unstable_cache(
             ],
           } : {},
           // סינון לפי סטטוס
-          status ? { status } : {},
+          status && status !== 'all' ? { status } : {},
         ].filter(Boolean),
       };
 
@@ -186,14 +186,14 @@ export default async function SuppliersPage({
         </div>
         <div className="flex gap-2">
           <Link href="/dashboard/bulk-import">
-            <Button variant="outline">
-              <Upload className="mr-2 h-4 w-4" />
+            <Button variant="outline" className="flex items-center justify-center gap-2">
+              <Upload className="h-4 w-4" />
               ייבוא ספקים
             </Button>
           </Link>
           <Link href="/dashboard/suppliers/add">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button className="flex items-center justify-center gap-2">
+              <Plus className="h-4 w-4" />
               הוסף ספק
             </Button>
           </Link>
@@ -215,12 +215,12 @@ export default async function SuppliersPage({
             </Link>
           )}
         </div>
-        <Select name="status" defaultValue={resolvedParams.status || ""}>
+        <Select name="status" defaultValue={resolvedParams.status || "all"}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="סנן לפי סטטוס" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">הכל</SelectItem>
+            <SelectItem value="all">הכל</SelectItem>
             <SelectItem value="active">פעיל</SelectItem>
             <SelectItem value="inactive">לא פעיל</SelectItem>
           </SelectContent>

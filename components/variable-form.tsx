@@ -4,7 +4,6 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -16,11 +15,56 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { Category, Color, Material, Size } from "@prisma/client"
 import { toast } from "sonner"
+import { Category as PrismaCategory } from "@prisma/client"
+
+// הגדרת ממשקים מקומיים במקום ייבוא מ-@prisma/client
+interface Category {
+  id: string;
+  userId: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  parent?: string | null;
+  status: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+interface Color {
+  id: string;
+  userId: string;
+  code: string;
+  name: string;
+  hex_code: string;
+  status: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+interface Size {
+  id: string;
+  userId: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  category?: string | null;
+  status: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+interface Material {
+  id: string;
+  userId: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  status: string;
+  created_at: Date;
+  updated_at: Date;
+}
 
 // טיפוסים
 type VariableType = 'category' | 'color' | 'size' | 'material'
@@ -39,21 +83,25 @@ interface FieldConfig {
   fields: FormField[]
 }
 
-interface FormData {
-  code: string
-  name: string
-  description?: string | null
-  parent?: string | null
-  status: string
-  hex_code?: string
-  category?: string | null
+export interface VariableFormProps {
+  type: 'category' | 'color' | 'size' | 'material'
+  items?: Category[]
+  children: React.ReactNode
+  defaultCode?: string
+  isMainCategory?: boolean
+  defaultValues?: any
+  isEdit?: boolean
+  onSubmit?: (formData: any) => Promise<{ success: boolean; error?: string }>
 }
 
-interface VariableFormProps {
-  type?: VariableType
-  item?: Variable
-  items?: Category[]
-  children?: React.ReactNode
+interface FormData {
+  name: string
+  code: string
+  description?: string
+  parent?: string | null
+  status: boolean
+  hex_code?: string
+  category?: string | null
 }
 
 // הגדרות שדות לפי סוג
@@ -98,207 +146,242 @@ const fieldConfigs: Record<VariableType, FieldConfig> = {
   }
 }
 
-export function VariableForm({ type = 'category', item, items = [], children }: VariableFormProps) {
+export function VariableForm({ type, items = [], children, defaultCode = '', isMainCategory = false, defaultValues, isEdit = false, onSubmit }: VariableFormProps) {
   const router = useRouter()
-  const [isOpen, setIsOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [activeType, setActiveType] = useState<VariableType>(type)
-  const [formData, setFormData] = useState<FormData>(() => {
-    if (item) {
-      return {
-        ...item,
-        status: item.status || 'active'
-      } as FormData
-    }
-    return {
-      code: '',
-      name: '',
-      description: '',
-      status: 'active',
-      ...(type === 'color' && { hex_code: '#000000' }),
-      ...(type === 'category' && { parent: '' }),
-      ...(type === 'size' && { category: '' })
-    }
+  const [open, setOpen] = useState(false)
+  const [formData, setFormData] = useState<FormData>(defaultValues ? {
+    name: defaultValues.name || '',
+    code: defaultValues.code || defaultCode || '',
+    description: defaultValues.description || '',
+    parent: defaultValues.parent || null,
+    status: defaultValues.status === 'active',
+    ...(type === 'color' && { hex_code: defaultValues.hex_code || '#000000' }),
+    ...(type === 'size' && { category: defaultValues.category || null })
+  } : {
+    name: '',
+    code: defaultCode || '',
+    description: '',
+    parent: null,
+    status: true,
+    ...(type === 'color' && { hex_code: '#000000' }),
+    ...(type === 'size' && { category: null })
   })
 
-  const isEditing = !!item
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setIsLoading(true)
-
-    try {
-      const endpoint = isEditing 
-        ? `/api/${activeType}s?id=${item.id}` 
-        : `/api/${activeType}s`
-
-      const response = await fetch(endpoint, {
-        method: isEditing ? "PATCH" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen)
+    if (newOpen && defaultValues) {
+      setFormData({
+        name: defaultValues.name || '',
+        code: defaultValues.code || defaultCode || '',
+        description: defaultValues.description || '',
+        parent: defaultValues.parent || null,
+        status: defaultValues.status === 'active',
+        ...(type === 'color' && { hex_code: defaultValues.hex_code || '#000000' }),
+        ...(type === 'size' && { category: defaultValues.category || null })
       })
-
-      if (!response.ok) {
-        throw new Error(isEditing ? `שגיאה בעדכון ה${fieldConfigs[activeType].title}` : `שגיאה בשמירת ה${fieldConfigs[activeType].title}`)
-      }
-
-      setIsOpen(false)
-      router.refresh()
-      toast.success(isEditing ? `ה${fieldConfigs[activeType].title} עודכן בהצלחה` : `ה${fieldConfigs[activeType].title} נוסף בהצלחה`)
-    } catch (error) {
-      console.error("שגיאה:", error)
-      toast.error(isEditing ? `שגיאה בעדכון ה${fieldConfigs[activeType].title}` : `שגיאה בשמירת ה${fieldConfigs[activeType].title}`)
-    } finally {
-      setIsLoading(false)
+    } else if (newOpen) {
+      setFormData({
+        name: '',
+        code: defaultCode || '',
+        description: '',
+        parent: null,
+        status: true,
+        ...(type === 'color' && { hex_code: '#000000' }),
+        ...(type === 'size' && { category: null })
+      })
     }
   }
 
-  function renderField(field: FormField) {
+  const fields = [
+    {
+      name: 'name',
+      label: 'שם',
+      type: 'text',
+      required: true
+    },
+    {
+      name: 'description',
+      label: 'תיאור',
+      type: 'text',
+      required: false
+    },
+    ...(type === 'category' && !isMainCategory && (!isEdit || (isEdit && defaultValues?.parent)) ? [
+      {
+        name: 'parent',
+        label: 'קטגוריית אב',
+        type: 'select',
+        required: true,
+        options: items
+          .filter(item => !item.parent && item.id !== defaultValues?.id)
+          .map(item => ({
+            value: item.id,
+            label: item.name
+          }))
+      }
+    ] : []),
+    ...(type === 'color' ? [
+      {
+        name: 'hex_code',
+        label: 'קוד צבע',
+        type: 'color',
+        required: true
+      }
+    ] : []),
+    ...(type === 'size' ? [
+      {
+        name: 'category',
+        label: 'קטגוריית מידה',
+        type: 'text',
+        required: false
+      }
+    ] : []),
+    {
+      name: 'status',
+      label: 'פעיל',
+      type: 'switch',
+      required: true
+    }
+  ]
+
+  const renderField = (field: any) => {
     const value = formData[field.name as keyof FormData]
     
     switch (field.type) {
       case 'text':
         return (
-          <Input
-            id={field.name}
-            placeholder={field.placeholder}
-            value={value || ''}
-            onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-            required={field.required}
-          />
-        )
-      case 'textarea':
-        return (
-          <Textarea
-            id={field.name}
-            placeholder={field.placeholder}
-            value={value || ''}
-            onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-          />
-        )
-      case 'color':
-        return (
-          <div className="flex gap-2">
+          <div className="grid gap-2" key={field.name}>
+            <Label htmlFor={field.name}>{field.label}</Label>
             <Input
-              type="color"
               id={field.name}
-              value={value || '#000000'}
+              value={value as string}
               onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-              className="w-20"
-              required={field.required}
-            />
-            <Input
-              type="text"
-              value={value || '#000000'}
-              onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-              placeholder="#000000"
-              className="flex-1"
               required={field.required}
             />
           </div>
         )
       case 'select':
-        if (field.name === 'parent' && activeType === 'category') {
-          // מיון הקטגוריות - קטגוריות ראשיות קודם
-          const sortedItems = [...items].sort((a, b) => {
-            if (!a.parent && b.parent) return -1
-            if (a.parent && !b.parent) return 1
-            return 0
-          })
-
-          // סינון קטגוריות שלא יכולות להיות הורה
-          const availableParents = sortedItems.filter(cat => {
-            // לא ניתן לבחור את הקטגוריה עצמה כהורה
-            if (item && cat.id === item.id) return false
-            
-            // לא ניתן לבחור תת-קטגוריה כהורה
-            if (item && cat.parent === item.id) return false
-            
-            return true
-          })
-
-          return (
+        return (
+          <div className="grid gap-2" key={field.name}>
+            <Label>{field.label}</Label>
             <Select
-              value={value || ''}
-              onValueChange={(value) => setFormData({ ...formData, [field.name]: value })}
+              value={value as string || 'none'}
+              onValueChange={(value) => setFormData({ ...formData, [field.name]: value === 'none' ? null : value })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="בחר קטגוריית אב (אופציונלי)" />
+                <SelectValue placeholder="בחר קטגוריית אב" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">ללא קטגוריית אב</SelectItem>
-                {availableParents.map((cat) => (
-                  <SelectItem 
-                    key={cat.id} 
-                    value={cat.id}
-                    className={cat.parent ? "pr-6" : ""}
-                  >
-                    {cat.parent ? `└─ ${cat.name}` : cat.name}
+                <SelectItem value="none">ללא קטגוריית אב</SelectItem>
+                {field.options.map((option: any) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-          )
-        }
-        return null
+          </div>
+        )
+      case 'color':
+        return (
+          <div className="grid gap-2" key={field.name}>
+            <Label htmlFor={field.name}>{field.label}</Label>
+            <div className="flex gap-2">
+              <Input
+                type="color"
+                id={field.name}
+                value={value as string}
+                onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
+                className="w-20"
+                required={field.required}
+              />
+              <Input
+                type="text"
+                value={value as string}
+                onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
+                placeholder="#000000"
+                className="flex-1"
+                required={field.required}
+              />
+            </div>
+          </div>
+        )
       case 'switch':
         return (
-          <Switch
-            id={field.name}
-            checked={value === 'active'}
-            onCheckedChange={(checked) => setFormData({ ...formData, [field.name]: checked ? 'active' : 'inactive' })}
-          />
+          <div className="flex items-center justify-between gap-2" key={field.name}>
+            <Label htmlFor={field.name}>{field.label}</Label>
+            <Switch
+              id={field.name}
+              checked={value as boolean}
+              onCheckedChange={(checked) => setFormData({ ...formData, [field.name]: checked })}
+            />
+          </div>
         )
       default:
         return null
     }
   }
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!onSubmit) {
+      console.error('No onSubmit handler provided')
+      return
+    }
+
+    try {
+      const result = await onSubmit(formData)
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create variable')
+      }
+
+      toast.success('נוצר בהצלחה')
+      setOpen(false)
+      setFormData({
+        name: '',
+        code: defaultCode || '',
+        description: '',
+        parent: null,
+        status: true,
+        ...(type === 'color' && { hex_code: '#000000' }),
+        ...(type === 'size' && { category: null })
+      })
+      router.refresh()
+    } catch (error) {
+      console.error('Error creating variable:', error)
+      toast.error(error instanceof Error ? error.message : 'שגיאה ביצירת משתנה')
+    }
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        {children || (
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            {isEditing ? `ערוך ${fieldConfigs[activeType].title}` : `הוסף ${fieldConfigs[activeType].title}`}
-          </Button>
-        )}
+        {children}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? `עריכת ${fieldConfigs[activeType].title}` : `הוספת ${fieldConfigs[activeType].title} חדש`}
+            {isEdit ? `עריכת ${fieldConfigs[type].title}` : `הוספת ${fieldConfigs[type].title} חדש`}
           </DialogTitle>
           <DialogDescription>
-            {isEditing ? `ערוך את פרטי ה${fieldConfigs[activeType].title}` : `הזן את פרטי ה${fieldConfigs[activeType].title} החדש`}
+            {isEdit ? `ערוך את פרטי ה${fieldConfigs[type].title}` : `הוסף ${fieldConfigs[type].title} חדש למערכת`}
           </DialogDescription>
         </DialogHeader>
-        {!isEditing && (
-          <Tabs value={activeType} onValueChange={(value) => setActiveType(value as VariableType)} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="category">קטגוריות</TabsTrigger>
-              <TabsTrigger value="color">צבעים</TabsTrigger>
-              <TabsTrigger value="size">מידות</TabsTrigger>
-              <TabsTrigger value="material">חומרים</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        )}
-        <form onSubmit={onSubmit} className="space-y-4">
-          {fieldConfigs[activeType].fields.map((field) => (
-            <div key={field.name} className={field.type === 'switch' ? 'flex items-center justify-between' : 'space-y-2'}>
-              <Label htmlFor={field.name}>{field.label}</Label>
-              {renderField(field)}
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="code">מק"ט</Label>
+              <Input
+                id="code"
+                value={formData.code}
+                disabled
+                readOnly
+              />
             </div>
-          ))}
+            {fields.map(renderField)}
+          </div>
           <DialogFooter>
-            <Button variant="outline" type="button" onClick={() => setIsOpen(false)}>
-              ביטול
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "שומר..." : isEditing ? `עדכן ${fieldConfigs[activeType].title}` : `הוסף ${fieldConfigs[activeType].title}`}
-            </Button>
+            <Button type="submit">{isEdit ? 'שמור' : 'הוסף'}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

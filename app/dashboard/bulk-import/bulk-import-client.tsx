@@ -12,7 +12,7 @@ import { FileSpreadsheet, Download, Upload, Check, X, AlertTriangle, Image as Im
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Category, Color, Size, Supplier } from "@prisma/client"
+import { Category, Color, Size, Supplier, Material } from "@prisma/client"
 
 type ImportLog = {
   id: string
@@ -35,6 +35,7 @@ interface BulkImportClientProps {
     categories: CategoryWithParentName[]
     colors: Color[]
     sizes: SizeWithCategoryName[]
+    materials: Material[]
     suppliers: Supplier[]
   }
   onUpload: (formData: FormData) => Promise<{ success: boolean, importLog: ImportLog }>
@@ -149,19 +150,19 @@ export function BulkImportClient({ importLogs, previewData, onUpload }: BulkImpo
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>מספר</TableHead>
                 <TableHead>קוד</TableHead>
                 <TableHead>שם</TableHead>
-                <TableHead>תיאור</TableHead>
                 <TableHead>קטגוריית אב</TableHead>
                 <TableHead>סטטוס</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(currentPreviewData as CategoryWithParentName[]).map((category) => (
+              {(currentPreviewData as CategoryWithParentName[]).map((category, index) => (
                 <TableRow key={category.id}>
+                  <TableCell>{index + 1}</TableCell>
                   <TableCell>{category.code}</TableCell>
                   <TableCell>{category.name}</TableCell>
-                  <TableCell>{category.description || "-"}</TableCell>
                   <TableCell>{category.parent_name || "-"}</TableCell>
                   <TableCell>
                     <Badge variant={category.status === "active" ? "default" : "secondary"}>{category.status}</Badge>
@@ -177,6 +178,7 @@ export function BulkImportClient({ importLogs, previewData, onUpload }: BulkImpo
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>מספר</TableHead>
                 <TableHead>קוד</TableHead>
                 <TableHead>שם</TableHead>
                 <TableHead>קוד צבע</TableHead>
@@ -185,8 +187,9 @@ export function BulkImportClient({ importLogs, previewData, onUpload }: BulkImpo
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(currentPreviewData as Color[]).map((color) => (
+              {(currentPreviewData as Color[]).map((color, index) => (
                 <TableRow key={color.id}>
+                  <TableCell>{index + 1}</TableCell>
                   <TableCell>{color.code}</TableCell>
                   <TableCell>{color.name}</TableCell>
                   <TableCell>{color.hex_code}</TableCell>
@@ -207,6 +210,7 @@ export function BulkImportClient({ importLogs, previewData, onUpload }: BulkImpo
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>מספר</TableHead>
                 <TableHead>קוד</TableHead>
                 <TableHead>שם</TableHead>
                 <TableHead>תיאור</TableHead>
@@ -215,8 +219,9 @@ export function BulkImportClient({ importLogs, previewData, onUpload }: BulkImpo
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(currentPreviewData as SizeWithCategoryName[]).map((size) => (
+              {(currentPreviewData as SizeWithCategoryName[]).map((size, index) => (
                 <TableRow key={size.id}>
+                  <TableCell>{index + 1}</TableCell>
                   <TableCell>{size.code}</TableCell>
                   <TableCell>{size.name}</TableCell>
                   <TableCell>{size.description || "-"}</TableCell>
@@ -230,11 +235,40 @@ export function BulkImportClient({ importLogs, previewData, onUpload }: BulkImpo
           </Table>
         )
 
+      case "materials":
+        return (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>מספר</TableHead>
+                <TableHead>קוד</TableHead>
+                <TableHead>שם</TableHead>
+                <TableHead>תיאור</TableHead>
+                <TableHead>סטטוס</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(currentPreviewData as Material[]).map((material, index) => (
+                <TableRow key={material.id}>
+                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>{material.code}</TableCell>
+                  <TableCell>{material.name}</TableCell>
+                  <TableCell>{material.description || "-"}</TableCell>
+                  <TableCell>
+                    <Badge variant={material.status === "active" ? "default" : "secondary"}>{material.status}</Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )
+
       case "suppliers":
         return (
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>מספר</TableHead>
                 <TableHead>קוד</TableHead>
                 <TableHead>שם</TableHead>
                 <TableHead>איש קשר</TableHead>
@@ -245,8 +279,9 @@ export function BulkImportClient({ importLogs, previewData, onUpload }: BulkImpo
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(currentPreviewData as Supplier[]).map((supplier) => (
+              {(currentPreviewData as Supplier[]).map((supplier, index) => (
                 <TableRow key={supplier.id}>
+                  <TableCell>{index + 1}</TableCell>
                   <TableCell>{supplier.code}</TableCell>
                   <TableCell>{supplier.name}</TableCell>
                   <TableCell>{supplier.contact_name}</TableCell>
@@ -307,10 +342,11 @@ export function BulkImportClient({ importLogs, previewData, onUpload }: BulkImpo
       <div className="flex flex-col space-y-4">
         <h2 className="text-2xl font-bold">ייבוא נתונים</h2>
         <Tabs defaultValue="categories" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-5 mb-4">
+          <TabsList className="grid grid-cols-6 mb-4">
             <TabsTrigger value="categories">קטגוריות</TabsTrigger>
             <TabsTrigger value="colors">צבעים</TabsTrigger>
             <TabsTrigger value="sizes">מידות</TabsTrigger>
+            <TabsTrigger value="materials">חומרים</TabsTrigger>
             <TabsTrigger value="suppliers">ספקים</TabsTrigger>
             <TabsTrigger value="products">מוצרים</TabsTrigger>
           </TabsList>
@@ -466,6 +502,72 @@ export function BulkImportClient({ importLogs, previewData, onUpload }: BulkImpo
                     <Button 
                       variant="outline" 
                       onClick={() => downloadTemplate("sizes", true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Download size={16} /> הורד נתונים קיימים
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <Input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={handleFileChange}
+                      className="cursor-pointer"
+                    />
+                  </div>
+                  <Button onClick={handleUpload} disabled={!uploadedFile || uploadStatus === "uploading"}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    העלה קובץ
+                  </Button>
+                </div>
+
+                {uploadStatus === "uploading" && (
+                  <div className="mt-4">
+                    <Progress value={uploadProgress} />
+                  </div>
+                )}
+
+                {uploadStatus === "success" && (
+                  <Alert className="mt-4">
+                    <Check className="h-4 w-4" />
+                    <AlertTitle>הצלחה</AlertTitle>
+                    <AlertDescription>הקובץ הועלה בהצלחה</AlertDescription>
+                  </Alert>
+                )}
+
+                {uploadStatus === "error" && (
+                  <Alert variant="destructive" className="mt-4">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>שגיאה</AlertTitle>
+                    <AlertDescription>אירעה שגיאה בהעלאת הקובץ</AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="materials">
+            <Card>
+              <CardHeader>
+                <CardTitle>ייבוא חומרים</CardTitle>
+                <CardDescription>הורד תבנית, מלא אותה והעלה אותה בחזרה למערכת.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col space-y-2">
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => downloadTemplate("materials")}
+                      className="flex items-center gap-2"
+                    >
+                      <Download size={16} /> הורד תבנית ריקה
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => downloadTemplate("materials", true)}
                       className="flex items-center gap-2"
                     >
                       <Download size={16} /> הורד נתונים קיימים

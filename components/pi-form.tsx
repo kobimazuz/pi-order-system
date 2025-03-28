@@ -274,10 +274,10 @@ export function PIForm({ categories, customers, createPI, generateExcel }: PIFor
                 <Input type="date" defaultValue={new Date().toISOString().split("T")[0]} disabled />
               </div>
               <div className="space-y-2">
-                <Label>לקוח</Label>
+                <Label>ספק</Label>
                 <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
                   <SelectTrigger>
-                    <SelectValue placeholder="בחר לקוח" />
+                    <SelectValue placeholder="בחר ספק" />
                   </SelectTrigger>
                   <SelectContent>
                     {customers.map((customer) => (

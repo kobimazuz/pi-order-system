@@ -1,7 +1,7 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { createClient } from '@/lib/supabase/server';
 
 export async function auth() {
-  const session = await getServerSession(authOptions);
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
   return session;
 } 

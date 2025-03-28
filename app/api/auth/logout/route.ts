@@ -1,43 +1,55 @@
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { type NextRequest } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
 
-export async function POST(request: NextRequest) {
-  // נשתמש בלקוח הסופרבייס החדש
-  const supabase = await createClient()
+export const dynamic = 'force-dynamic'
 
-  // התנתקות מסופרבייס
-  const { error } = await supabase.auth.signOut()
+export async function POST() {
+  try {
+    const response = NextResponse.json({ success: true })
+    const cookieStore = await cookies()
+    
+    // רשימת קוקיז של Supabase
+    const supabaseCookies = [
+      'sb-access-token',
+      'sb-refresh-token',
+      'supabase-auth-token',
+      'sb-provider-token',
+      'sb-auth-token',
+      'supabase-auth-token-code-verifier'
+    ]
 
-  if (error) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    )
+    // מחיקת כל הקוקיז המוכרים
+    supabaseCookies.forEach(name => {
+      response.cookies.set({
+        name,
+        value: '',
+        maxAge: 0,
+        path: '/',
+        sameSite: 'lax',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production'
+      })
+    })
+
+    // ניסיון לאתר ולמחוק קוקיז נוספים
+    const allCookies = cookieStore.getAll()
+    allCookies.forEach(cookie => {
+      if (cookie.name.startsWith('sb-') || cookie.name.includes('supabase')) {
+        response.cookies.set({
+          name: cookie.name,
+          value: '',
+          maxAge: 0,
+          path: '/',
+          sameSite: 'lax',
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production'
+        })
+      }
+    })
+
+    return response
+  } catch (error) {
+    console.error('שגיאה במחיקת קוקיז:', error)
+    return NextResponse.json({ error: 'שגיאה במחיקת קוקיז' }, { status: 500 })
   }
-
-  // יצירת תגובה עם סטטוס הצלחה
-  const response = NextResponse.json(
-    { success: true },
-    { status: 200 }
-  )
-  
-  // ניקוי קוקיז ספציפיים ידועים של סופרבייס
-  response.cookies.delete('sb-access-token')
-  response.cookies.delete('sb-refresh-token')
-  
-  // נגדיר רשימה של קוקיז שמתחילים ב-sb או מכילים supabase
-  const cookieNames = request.cookies.getAll()
-    .filter(cookie => 
-      cookie.name.startsWith('sb-') || 
-      cookie.name.includes('supabase')
-    )
-    .map(cookie => cookie.name)
-  
-  // נמחק את כל הקוקיז שמצאנו
-  for (const name of cookieNames) {
-    response.cookies.delete(name)
-  }
-
-  return response
 } 

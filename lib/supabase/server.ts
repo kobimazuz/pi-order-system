@@ -1,51 +1,86 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
 
-export const createClient = async () => {
+export const createClient = async (response?: NextResponse) => {
   const cookieStore = await cookies()
   
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      auth: {
+        flowType: 'pkce',
+        detectSessionInUrl: false,
+        persistSession: true,
+      },
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value
+          const value = cookieStore.get(name)?.value
+          if (!value) return undefined
+          try {
+            const parsed = JSON.parse(decodeURIComponent(value))
+            if (typeof parsed === 'string' && parsed.startsWith('base64-')) {
+              return atob(parsed.replace('base64-', ''))
+            }
+            return parsed
+          } catch {
+            return value
+          }
         },
         set(name: string, value: string, options: CookieOptions) {
           try {
-            cookieStore.set({
-              name,
-              value,
-              ...options,
-              sameSite: 'lax',
-              httpOnly: true,
-              secure: process.env.NODE_ENV === 'production'
-            })
+            if (response) {
+              response.cookies.set({
+                name,
+                value,
+                ...options,
+                sameSite: 'lax',
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production'
+              })
+            } else {
+              cookieStore.set({
+                name,
+                value,
+                ...options,
+                sameSite: 'lax',
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production'
+              })
+            }
           } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+            console.error('שגיאה בהגדרת קוקי:', error)
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
-            cookieStore.set({
-              name,
-              value: '',
-              ...options,
-              maxAge: 0,
-              sameSite: 'lax',
-              httpOnly: true,
-              secure: process.env.NODE_ENV === 'production'
-            })
+            if (response) {
+              response.cookies.set({
+                name,
+                value: '',
+                ...options,
+                maxAge: 0,
+                sameSite: 'lax',
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production'
+              })
+            } else {
+              cookieStore.set({
+                name,
+                value: '',
+                ...options,
+                maxAge: 0,
+                sameSite: 'lax',
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production'
+              })
+            }
           } catch (error) {
-            // The `delete` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+            console.error('שגיאה במחיקת קוקי:', error)
           }
         },
       },
     }
   )
-} 
+}

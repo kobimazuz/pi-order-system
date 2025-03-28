@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { BulkImportClient } from "./bulk-import-client"
 import { Suspense } from "react"
 import { LoadingSpinner } from "@/components/ui/loading"
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import * as XLSX from "xlsx"
 import JSZip from "jszip"
@@ -55,11 +55,12 @@ type SizeWithCategoryName = {
 async function uploadProducts(formData: FormData) {
   "use server"
   
-  const { userId } = await auth()
-  if (!userId) {
+  const session = await auth()
+  if (!session?.user) {
     throw new Error("Unauthorized")
   }
 
+  const userId = session.user.id
   const file = formData.get("file") as File
   const type = formData.get("type") as string
   const imagesFile = formData.get("images") as File | null
@@ -229,6 +230,29 @@ async function uploadProducts(formData: FormData) {
               break
             default:
               await handleSupplierAdd(item, userId)
+              successCount++
+          }
+          break
+          
+        case "materials":
+          switch (action) {
+            case "הוספה":
+              await handleMaterialAdd(item, userId)
+              successCount++
+              break
+            case "עדכון":
+              await handleMaterialUpdate(item, userId)
+              updatedCount++
+              break
+            case "מחיקה":
+              await handleMaterialDelete(item, userId)
+              deletedCount++
+              break
+            case "ללא שינוי":
+              // לא עושים כלום
+              break
+            default:
+              await handleMaterialAdd(item, userId)
               successCount++
           }
           break
@@ -472,7 +496,7 @@ async function handleCategoryUpdate(item: any, userId: string) {
         parent: existingCategory.id
       }
     })
-    if (childCategories.some(child => child.id === parentCategory.id)) {
+    if (childCategories.some((child: any) => child.id === parentCategory.id)) {
       throw new Error(`לא ניתן להגדיר קטגוריה כתת-קטגוריה של אחת מתת-הקטגוריות שלה`)
     }
     parentId = parentCategory.id
@@ -738,29 +762,98 @@ async function handleSupplierDelete(item: any, userId: string) {
   })
 }
 
+// פונקציות עזר לטיפול בחומרים
+async function handleMaterialAdd(item: any, userId: string) {
+  // בדיקה אם החומר כבר קיים
+  const existingMaterial = await prisma.material.findFirst({
+    where: { 
+      userId,
+      code: item["קוד"] || item.code
+    }
+  })
+
+  if (existingMaterial) {
+    throw new Error(`חומר עם קוד ${item["קוד"] || item.code} כבר קיים`)
+  }
+
+  // יצירת חומר חדש
+  return await prisma.material.create({
+    data: {
+      userId,
+      code: item["קוד"] || item.code,
+      name: item["שם"] || item.name,
+      description: item["תיאור"] || item.description || null,
+      status: item["סטטוס"] || item.status || "active"
+    }
+  })
+}
+
+async function handleMaterialUpdate(item: any, userId: string) {
+  // מציאת החומר הקיים
+  const existingMaterial = await prisma.material.findFirst({
+    where: { 
+      userId,
+      code: item["קוד"] || item.code
+    }
+  })
+
+  if (!existingMaterial) {
+    throw new Error(`חומר עם קוד ${item["קוד"] || item.code} לא נמצא`)
+  }
+
+  // עדכון החומר
+  return await prisma.material.update({
+    where: { id: existingMaterial.id },
+    data: {
+      name: item["שם"] || item.name,
+      description: item["תיאור"] || item.description || null,
+      status: item["סטטוס"] || item.status || "active"
+    }
+  })
+}
+
+async function handleMaterialDelete(item: any, userId: string) {
+  // מציאת החומר הקיים
+  const existingMaterial = await prisma.material.findFirst({
+    where: { 
+      userId,
+      code: item["קוד"] || item.code
+    }
+  })
+
+  if (!existingMaterial) {
+    throw new Error(`חומר עם קוד ${item["קוד"] || item.code} לא נמצא`)
+  }
+
+  // מחיקת החומר
+  return await prisma.material.delete({
+    where: { id: existingMaterial.id }
+  })
+}
+
 async function getPageData() {
   try {
     const session = await auth()
-    if (!session?.userId) {
-      redirect("/sign-in")
+    if (!session?.user) {
+      redirect("/auth/login")
     }
 
     // שימוש בפניות נפרדות במקום Promise.all שהיה מוגדר באופן שגוי
     const importLogs = await prisma.importLog.findMany({
-      where: { userId: session.userId },
+      where: { userId: session.user.id },
       orderBy: { created_at: "desc" },
       take: 10
     });
 
     // מעבד את ה-metadata במידה וקיים
-    const processedImportLogs = importLogs.map(log => ({
+    const processedImportLogs = importLogs.map((log: any) => ({
       ...log,
       metadata: log.metadata ? JSON.parse(log.metadata) : null
     }));
 
     const categoriesRaw = await prisma.category.findMany({
       where: { 
-        userId: session.userId,
+        userId: session.user.id,
         status: "active" 
       },
       orderBy: { name: "asc" },
@@ -769,7 +862,7 @@ async function getPageData() {
       }
     });
     
-    const categories = categoriesRaw.map(category => ({
+    const categories = categoriesRaw.map((category: any) => ({
       id: category.id,
       userId: category.userId,
       code: category.code,
@@ -784,7 +877,7 @@ async function getPageData() {
 
     const colors = await prisma.color.findMany({
       where: { 
-        userId: session.userId,
+        userId: session.user.id,
         status: "active" 
       },
       orderBy: { name: "asc" }
@@ -792,13 +885,13 @@ async function getPageData() {
 
     const sizesRaw = await prisma.size.findMany({
       where: { 
-        userId: session.userId,
+        userId: session.user.id,
         status: "active" 
       },
       orderBy: { name: "asc" }
     });
     
-    const sizes = sizesRaw.map(size => ({
+    const sizes = sizesRaw.map((size: any) => ({
       id: size.id,
       userId: size.userId,
       code: size.code,
@@ -813,7 +906,15 @@ async function getPageData() {
 
     const suppliers = await prisma.supplier.findMany({
       where: { 
-        userId: session.userId,
+        userId: session.user.id,
+        status: "active" 
+      },
+      orderBy: { name: "asc" }
+    });
+
+    const materials = await prisma.material.findMany({
+      where: { 
+        userId: session.user.id,
         status: "active" 
       },
       orderBy: { name: "asc" }
@@ -825,6 +926,7 @@ async function getPageData() {
         categories,
         colors,
         sizes,
+        materials,
         suppliers
       }
     };
@@ -835,37 +937,32 @@ async function getPageData() {
 }
 
 export default async function BulkImportPage() {
-  try {
-    const session = await auth()
-    if (!session?.userId) {
-      redirect("/sign-in")
-    }
-    
-    const { importLogs, previewData } = await getPageData();
-
-    return (
-      <div className="flex flex-col gap-8 p-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">ייבוא נתונים בבולק</h2>
-            <p className="text-muted-foreground">
-              ייבוא נתונים מקובץ אקסל עבור קטגוריות, צבעים, מידות וספקים
-            </p>
-          </div>
-        </div>
-        <Separator />
-        <Suspense fallback={<LoadingSpinner />}>
-          <BulkImportClient 
-            importLogs={importLogs}
-            previewData={previewData}
-            onUpload={uploadProducts}
-          />
-        </Suspense>
-      </div>
-    );
-  } catch (error) {
-    console.error('Error in BulkImportPage:', error);
-    return <div>אירעה שגיאה בטעינת הדף. נא לנסות שוב מאוחר יותר.</div>;
+  const session = await auth()
+  if (!session?.user) {
+    redirect("/auth/login")
   }
+
+  const data = await getPageData()
+  
+  return (
+    <div className="flex flex-col gap-8 p-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">ייבוא נתונים בבולק</h2>
+          <p className="text-muted-foreground">
+            ייבוא נתונים מקובץ אקסל עבור קטגוריות, צבעים, מידות וספקים
+          </p>
+        </div>
+      </div>
+      <Separator />
+      <Suspense fallback={<LoadingSpinner />}>
+        <BulkImportClient 
+          importLogs={data.importLogs}
+          previewData={data.previewData}
+          onUpload={uploadProducts}
+        />
+      </Suspense>
+    </div>
+  );
 }
 

@@ -1,11 +1,10 @@
 import { Metadata } from "next"
 import { prisma } from "@/lib/prisma"
 import { PIForm } from "@/components/pi-form"
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { Workbook } from 'exceljs'
-import { Category } from "@prisma/client"
 
 export const metadata: Metadata = {
   title: "יצירת הזמנת PI",
@@ -52,8 +51,8 @@ type PIWithRelations = {
 }
 
 async function getData() {
-  const { userId } = await auth()
-  if (!userId) {
+  const session = await auth()
+  if (!session?.user?.id) {
     redirect("/sign-in")
   }
 
@@ -61,7 +60,7 @@ async function getData() {
     prisma.category.findMany({
       where: {
         status: "active",
-        userId
+        userId: session.user.id
       },
       select: {
         id: true,
@@ -87,7 +86,7 @@ async function getData() {
     prisma.customer.findMany({
       where: {
         status: "active",
-        userId
+        userId: session.user.id
       },
       select: {
         id: true,
@@ -114,8 +113,8 @@ async function getData() {
 async function createPI(formData: FormData) {
   "use server"
   
-  const { userId } = await auth()
-  if (!userId) {
+  const session = await auth()
+  if (!session?.user?.id) {
     return { error: "Unauthorized" }
   }
 
@@ -127,7 +126,7 @@ async function createPI(formData: FormData) {
 
     const pi = await prisma.pI.create({
       data: {
-        userId,
+        userId: session.user.id,
         customerId,
         notes,
         status: "draft",
@@ -163,8 +162,8 @@ async function createPI(formData: FormData) {
 async function generateExcel(formData: FormData) {
   "use server"
   
-  const { userId } = await auth()
-  if (!userId) {
+  const session = await auth()
+  if (!session?.user?.id) {
     return { error: "Unauthorized" }
   }
 
@@ -173,7 +172,7 @@ async function generateExcel(formData: FormData) {
     const pi = await prisma.pI.findUnique({
       where: { 
         id: piId,
-        userId 
+        userId: session.user.id 
       },
       include: {
         items: {

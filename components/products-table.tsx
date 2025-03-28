@@ -1,22 +1,55 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu"
-import { Edit, MoreHorizontal, Trash2, Eye } from "lucide-react"
-import Image from "next/image"
+import { Edit, Eye } from "lucide-react"
 import Link from "next/link"
-import { Product, Category, Supplier } from "@prisma/client"
+
+// הגדרת ממשקים מקומיים במקום ייבוא מ-@prisma/client
+interface Product {
+  id: string;
+  userId: string;
+  sku: string;
+  name: string;
+  description?: string | null;
+  image_url?: string | null;
+  units_per_pack: number;
+  packing_info?: string | null;
+  units_per_carton: number;
+  price_per_unit: number;
+  status: string;
+  categoryId: string;
+  supplierId: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+interface Category {
+  id: string;
+  userId: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  parent?: string | null;
+  status: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+interface Supplier {
+  id: string;
+  userId: string;
+  code: string;
+  name: string;
+  contact_name: string;
+  email: string;
+  phone: string;
+  address: string;
+  status: string;
+  created_at: Date;
+  updated_at: Date;
+}
 
 interface ProductWithRelations extends Product {
   category: Category;
