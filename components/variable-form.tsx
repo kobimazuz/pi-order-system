@@ -158,12 +158,12 @@ export function VariableForm({ type, items = [], children, defaultCode = '', isM
     ...(type === 'color' && { hex_code: defaultValues.hex_code || '#000000' }),
     ...(type === 'size' && { category: defaultValues.category || null })
   } : {
-    name: '',
+      name: '',
     code: defaultCode || '',
-    description: '',
+      description: '',
     parent: null,
     status: true,
-    ...(type === 'color' && { hex_code: '#000000' }),
+      ...(type === 'color' && { hex_code: '#000000' }),
     ...(type === 'size' && { category: null })
   })
 
@@ -260,7 +260,7 @@ export function VariableForm({ type, items = [], children, defaultCode = '', isM
           </div>
         )
       case 'select':
-        return (
+          return (
           <div className="grid gap-2" key={field.name}>
             <Label>{field.label}</Label>
             <Select
@@ -309,11 +309,11 @@ export function VariableForm({ type, items = [], children, defaultCode = '', isM
         return (
           <div className="flex items-center justify-between gap-2" key={field.name}>
             <Label htmlFor={field.name}>{field.label}</Label>
-            <Switch
-              id={field.name}
+          <Switch
+            id={field.name}
               checked={value as boolean}
               onCheckedChange={(checked) => setFormData({ ...formData, [field.name]: checked })}
-            />
+          />
           </div>
         )
       default:

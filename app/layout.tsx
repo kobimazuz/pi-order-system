@@ -6,6 +6,10 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth-provider"
 import { Rubik } from 'next/font/google'
 import { Toaster } from "@/components/ui/sonner"
+import { registerLicense } from '@syncfusion/ej2-base'
+
+// רישום רישיון Syncfusion פעם אחת באפליקציה
+registerLicense('GTBMmhhan1/fWBgaGRifGJhfGpqampzYWBpZmppZmpoODwxOn0+MikmKRM0PjI6P30wPD4=')
 
 const inter = Inter({ subsets: ["latin"] })
 const rubik = Rubik({ subsets: ['hebrew', 'latin'] })

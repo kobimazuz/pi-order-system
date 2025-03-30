@@ -57,32 +57,11 @@ export function BulkImportClient({ importLogs, previewData, onUpload }: BulkImpo
 
   const downloadTemplate = async (type: string, includeData: boolean = false) => {
     try {
-      const response = await fetch(`/api/templates?type=${type}&includeData=${includeData}`, {
-        credentials: 'include'
-      })
-      
-      if (response.status === 401) {
-        // טיפול בשגיאת הרשאות
-        alert("אין הרשאות מתאימות")
-        return
-      }
-      
-      if (!response.ok) {
-        throw new Error("Failed to download template")
-      }
-
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.href = url
-      link.download = `${type}_${includeData ? 'data' : 'template'}.xlsx`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
+      const downloadUrl = `/api/templates?type=${type}&includeData=${includeData}`;
+      window.open(downloadUrl, '_blank');
     } catch (error) {
-      console.error("Error downloading template:", error)
-      alert("שגיאה בהורדת התבנית")
+      console.error("Error downloading template:", error);
+      alert("שגיאה בהורדת התבנית");
     }
   }
 
