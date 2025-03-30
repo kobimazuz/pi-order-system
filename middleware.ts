@@ -1,4 +1,8 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { match as matchLocale } from '@formatjs/intl-localematcher'
+import Negotiator from 'negotiator'
+import { languages, fallbackLng } from '@/app/i18n/settings'
 
 // רשימת נתיבים מוגנים - מושבתת זמנית
 const PROTECTED_ROUTES: string[] = [];
@@ -30,13 +34,38 @@ const isPublicRoute = (path: string) => {
   return true; // כל הנתיבים פתוחים זמנית
 };
 
-export async function middleware(request: NextRequest) {
-  // מחזיר תמיד next ללא בדיקות אבטחה
-  return NextResponse.next();
+function getLocale(request: NextRequest): string {
+  const negotiatorHeaders: Record<string, string> = {}
+  request.headers.forEach((value, key) => (negotiatorHeaders[key] = value))
+
+  const locales = languages
+  const negotiatorLanguages = new Negotiator({ headers: negotiatorHeaders }).languages()
+
+  return matchLocale(negotiatorLanguages, locales, fallbackLng)
+}
+
+export function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+  const pathnameIsMissingLocale = languages.every(
+    (locale) => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`
+  )
+
+  // Redirect if there is no locale
+  if (pathnameIsMissingLocale) {
+    const locale = getLocale(request)
+
+    // e.g. incoming request is /products
+    // The new URL is now /en/products
+    return NextResponse.redirect(
+      new URL(
+        `/${locale}${pathname.startsWith('/') ? '' : '/'}${pathname}`,
+        request.url
+      )
+    )
+  }
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|public).*)',
-  ],
+  // Matcher ignoring `/_next/` and `/api/`
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)']
 };

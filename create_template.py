@@ -10,12 +10,12 @@ from openpyxl.formatting.rule import FormulaRule
 import re
 
 def generate_code_formula(prefix, start_row):
-    """יצירת נוסחה לקוד אוטומטי"""
-    return f'=IF(B{start_row}="","","{prefix}"&TEXT(ROW()-1,"000"))'
+    """יצירת נוסחה לקוד אוטומטי שמתעלמת משורות ריקות"""
+    return f'=IF(B{start_row}<>"","{prefix}"&TEXT(COUNTIF(B$2:B{start_row},"<>"),"000"),"")'
 
-def generate_subcat_code_formula(start_row):
-    """יצירת נוסחה לקוד קטגוריית משנה"""
-    return f'=IF(AND(B{start_row}<>"",D{start_row}<>""),INDEX(\'קטגוריות ראשיות\'!$A$2:$A$1000,MATCH(D{start_row},\'קטגוריות ראשיות\'!$B$2:$B$1000,0))&"-"&TEXT(COUNTIF(D$2:D{start_row},D{start_row}),"000"),"")'
+def generate_subcat_code_formula(start_row, sheet_name):
+    """יצירת נוסחה לקוד קטגוריית משנה שמתעלמת משורות ריקות"""
+    return f'=IF(AND(B{start_row}<>"",D{start_row}<>""),INDEX(\'{sheet_name}\'!$A$2:$A$1000,MATCH(D{start_row},\'{sheet_name}\'!$B$2:$B$1000,0))&"-"&TEXT(COUNTIF(D$2:D{start_row},"<>"),"000"),"")'
 
 def create_master_template(lang='he'):
     """
@@ -59,11 +59,12 @@ def create_master_template(lang='he'):
                 'supplier': 'ספק',
                 'colors': 'צבעים',
                 'sizes': 'מידות',
-                'materials': 'חומרים',  # שונה מ'חומר' ל'חומרים'
+                'materials': 'חומרים',
                 'units_per_pack': 'כמות באריזה',
                 'packing_instructions': 'הוראות אריזה',
                 'units_per_carton': 'כמות בקרטון',
-                'price_per_unit': 'מחיר ליחידה'
+                'price_per_unit': 'מחיר ליחידה',
+                'start_code': 'קוד התחלתי'
             },
             'validations': {
                 'status': ['פעיל', 'לא פעיל'],
@@ -72,6 +73,9 @@ def create_master_template(lang='he'):
                 'error_message': 'יש לבחור ערך מהרשימה בלבד'
             },
             'instructions_text': [
+                [''],  # Row for logo
+                [''],  # Spacing row
+                [''],  # Row for header
                 ['הנחיות שימוש בקובץ טמפלייט לניהול הזמנות FlexiPI'],
                 [''],
                 [f'גרסה: {VERSION}'],
@@ -100,7 +104,7 @@ def create_master_template(lang='he'):
                 ['ספקים .ו'],
                 ['מוצרים .ז'],
                 [''],
-                ['עמודות הקוד והמק"ט נעולות ומתמלאות אוטומטית .2'],
+                ['עמודות הקוד והמק"ט נעולות ומתמלאות אוטומטית (מק"ט בלבד ניתן להזין גם ידנית) .2'],
                 ['בשדות עם רשימה נפתחת יש לבחור מהרשימה בלבד .3'],
                 ['אין לשנות את מבנה הקובץ או להוסיף/למחוק עמודות .4'],
                 ['ניתן להוסיף שורות נתונים ככל שנדרש .5'],
@@ -150,11 +154,12 @@ def create_master_template(lang='he'):
                 ['אימייל: כתובת דוא"ל -'],
                 ['טלפון: מספר טלפון -'],
                 ['כתובת: כתובת מלאה -'],
+                ['קוד התחלתי: מספר התחלתי לקידוד מוצרי הספק (אופציונלי) -'],
                 ['סטטוס: פעיל/לא פעיל -'],
                 ['פעולה: עדכון/מחיקה/הוספה -'],
                 [''],
                 ['מוצרים:'],
-                ['מק"ט: נוצר אוטומטית לפי הגדרות -'],
+                ['מק"ט: נוצר אוטומטית או ידנית -'],
                 ['שם: שם המוצר -'],
                 ['תיאור: תיאור מפורט של המוצר -'],
                 ['קטגוריה ראשית: בחירה מרשימה -'],
@@ -176,6 +181,8 @@ def create_master_template(lang='he'):
                 ['מחירים יש להזין במספרים בלבד, ללא סימנים מיוחדים .3'],
                 ['בכל שינוי יש לציין את סוג הפעולה בעמודת "פעולה" .4'],
                 ['אין למחוק שורות קיימות, אלא רק לסמן אותן כ"לא פעיל" .5'],
+                ['קוד התחלתי בספקים: מאפשר להתחיל את מספור המוצרים ממספר מסוים עבור כל ספק .6'],
+                ['חשוב: הזנת מק"ט ידני תשבור את רצף המספור האוטומטי עבור אותו ספק .7'],
                 [''],
                 ['תמיכה:'],
                 ['במקרה של תקלה או שאלה, ניתן לפנות לתמיכה הטכנית:'],
@@ -212,11 +219,12 @@ def create_master_template(lang='he'):
                 'supplier': 'Supplier',
                 'colors': 'Colors',
                 'sizes': 'Sizes',
-                'materials': 'Materials',  # Changed from 'Material' to 'Materials'
+                'materials': 'Materials',
                 'units_per_pack': 'Units Per Pack',
                 'packing_instructions': 'Packing Instructions',
                 'units_per_carton': 'Units Per Carton',
-                'price_per_unit': 'Price Per Unit'
+                'price_per_unit': 'Price Per Unit',
+                'start_code': 'Start Code'
             },
             'validations': {
                 'status': ['Active', 'Inactive'],
@@ -225,6 +233,9 @@ def create_master_template(lang='he'):
                 'error_message': 'Please select a value from the list'
             },
             'instructions_text': [
+                [''],  # Row for logo
+                [''],  # Spacing row
+                [''],  # Row for header
                 ['FlexiPI Template Usage Instructions'],
                 [''],
                 [f'Version: {VERSION}'],
@@ -253,10 +264,10 @@ def create_master_template(lang='he'):
                 ['   f. Suppliers'],
                 ['   g. Products'],
                 [''],
-                ['2. Code and SKU columns are locked and auto-generated'],
-                ['3. For fields with dropdown lists, select from the list only'],
-                ['4. Do not modify the file structure or add/delete columns'],
-                ['5. You can add data rows as needed'],
+                ['Code and SKU columns are locked and auto-filled (SKU can also be entered manually) .2'],
+                ['In fields with dropdown lists, select only from the list .3'],
+                ['Do not modify the file structure or add/delete columns .4'],
+                ['You can add data rows as needed .5'],
                 [''],
                 ['Field Details for Each Sheet:'],
                 [''],
@@ -307,7 +318,7 @@ def create_master_template(lang='he'):
                 ['- Action: Update/Delete/Add'],
                 [''],
                 ['Products:'],
-                ['- SKU: Auto-generated based on settings'],
+                ['- SKU: Editable or auto-generated based on settings'],
                 ['- Name: Product name'],
                 ['- Description: Detailed product description'],
                 ['- Main Category: Select from list'],
@@ -329,6 +340,8 @@ def create_master_template(lang='he'):
                 ['3. Enter prices as numbers only, without special characters'],
                 ['4. Specify the action type in the "Action" column for any changes'],
                 ['5. Do not delete existing rows, mark them as "Inactive" instead'],
+                ['6. Start Code in Suppliers: Allows starting product numbering from a specific number for each supplier'],
+                ['7. Important: Entering a manual SKU will break the automatic numbering sequence for that supplier'],
                 [''],
                 ['Support:'],
                 ['For technical support or questions, contact:'],
@@ -339,17 +352,15 @@ def create_master_template(lang='he'):
 
     t = translations[lang]
     
-    # יצירת תיקיית היעד אם לא קיימת
+    # יצירת תיקיית היעד
     output_dir = os.path.join('public', 'templates')
     os.makedirs(output_dir, exist_ok=True)
-    output_file = os.path.join(output_dir, f'master_template_{lang}_v4.xlsx')
+    output_file = os.path.join(output_dir, f'FlexiPI_Template_v{VERSION}_{CURRENT_DATE.replace("/", "_")}_{lang}.xlsx')
 
-    # יצירת חוברת עבודה חדשה
+    # יצירת חוברת עבודה
     wb = openpyxl.Workbook()
     
-    # ========== יצירת סגנונות כלליים ==========
-    
-    # סגנון כותרת
+    # סגנונות כלליים
     header_style = NamedStyle(name='header_style')
     header_style.font = Font(name='Arial', size=11, bold=True, color='FFFFFF')
     header_style.fill = PatternFill(fill_type='solid', start_color='2E7D32', end_color='2E7D32')
@@ -360,17 +371,14 @@ def create_master_template(lang='he'):
         bottom=Side(border_style='medium', color='000000')
     )
     header_style.alignment = Alignment(
-        horizontal='center',  # משאיר את הכותרות ממורכזות
+        horizontal='center', 
         vertical='center', 
         wrap_text=True, 
         readingOrder=1 if t['direction'] == 'rtl' else 2
     )
-    
-    # הוספת הסגנון לחוברת העבודה
     if 'header_style' not in wb.named_styles:
         wb.add_named_style(header_style)
     
-    # סגנון תא רגיל
     cell_style = NamedStyle(name='cell_style')
     cell_style.font = Font(name='Arial', size=11)
     cell_style.border = Border(
@@ -380,39 +388,32 @@ def create_master_template(lang='he'):
         bottom=Side(border_style='thin', color='000000')
     )
     cell_style.alignment = Alignment(
-        horizontal=t['alignment'],  # משתמש בערך המתאים לשפה - 'right' לעברית או 'left' לאנגלית
+        horizontal=t['alignment'],
         vertical='center', 
         wrap_text=True, 
         readingOrder=1 if t['direction'] == 'rtl' else 2
     )
-    
-    # הוספת הסגנון לחוברת העבודה
     if 'cell_style' not in wb.named_styles:
         wb.add_named_style(cell_style)
     
-    # סגנון לתא כותרת בדף הוראות
     instruction_header_style = NamedStyle(name='instruction_header_style')
-    instruction_header_style.font = Font(name='Arial', size=14, bold=True)
+    instruction_header_style.font = Font(name='Arial', size=14, bold=True, color='FFFFFF')
+    instruction_header_style.fill = PatternFill(fill_type='solid', start_color='4472C4', end_color='4472C4')
     instruction_header_style.border = Border(
         left=Side(border_style='thin', color='000000'),
         right=Side(border_style='thin', color='000000'),
         top=Side(border_style='thin', color='000000'),
         bottom=Side(border_style='medium', color='000000')
     )
-    instruction_header_style.fill = PatternFill(fill_type='solid', start_color='4472C4', end_color='4472C4')
-    instruction_header_style.font = Font(name='Arial', size=14, bold=True, color='FFFFFF')
     instruction_header_style.alignment = Alignment(
-        horizontal=t['alignment'],  # משתמש בערך המתאים לשפה - 'right' לעברית או 'left' לאנגלית
+        horizontal=t['alignment'],
         vertical='center', 
         wrap_text=True, 
         readingOrder=1 if t['direction'] == 'rtl' else 2
     )
-    
-    # הוספת הסגנון לחוברת העבודה
     if 'instruction_header_style' not in wb.named_styles:
         wb.add_named_style(instruction_header_style)
     
-    # סגנון לתא רגיל בדף הוראות
     instruction_cell_style = NamedStyle(name='instruction_cell_style')
     instruction_cell_style.font = Font(name='Arial', size=11)
     instruction_cell_style.border = Border(
@@ -422,40 +423,31 @@ def create_master_template(lang='he'):
         bottom=Side(border_style='thin', color='000000')
     )
     instruction_cell_style.alignment = Alignment(
-        horizontal=t['alignment'],  # משתמש בערך המתאים לשפה - 'right' לעברית או 'left' לאנגלית
+        horizontal=t['alignment'],
         vertical='center', 
         wrap_text=True, 
         readingOrder=1 if t['direction'] == 'rtl' else 2
     )
-    
-    # הוספת הסגנון לחוברת העבודה
     if 'instruction_cell_style' not in wb.named_styles:
         wb.add_named_style(instruction_cell_style)
         
-    # סגנון כותרות משנה בדף הנחיות עם צבעים ספציפיים
     section_colors = {
-        'main': '4472C4',  # צבע כחול לכותרת ראשית
-        'settings': 'FF0000',  # אדום - תואם את גליון ההגדרות
-        'main_categories': '70AD47',  # ירוק כהה - תואם את גליון קטגוריות ראשיות
-        'sub_categories': '5B9BD5',  # כחול - תואם את גליון קטגוריות משנה
-        'colors': 'C00000',  # אדום כהה - תואם את גליון צבעים
-        'sizes': 'ED7D31',  # כתום - תואם את גליון מידות
-        'materials': 'FFC000',  # צהוב-כתום - תואם את גליון חומרים
-        'suppliers': '7030A0',  # סגול כהה - תואם את גליון ספקים
-        'products': '00B050',  # ירוק בהיר - תואם את גליון מוצרים
-        'notes': '808080',  # אפור - להערות והוראות כלליות
+        'main': '4472C4',
+        'settings': 'FF0000',
+        'main_categories': '70AD47',
+        'sub_categories': '5B9BD5',
+        'colors': 'C00000',
+        'sizes': 'ED7D31',
+        'materials': 'FFC000',
+        'suppliers': '7030A0',
+        'products': '00B050',
+        'notes': '808080'
     }
     
-    # יצירת סגנונות לכל סוג כותרת משנה בדף הנחיות
     for section, color in section_colors.items():
         style_name = f'section_{section}_style'
         section_style = NamedStyle(name=style_name)
-        
-        # שינוי צבע הטקסט בהתאם לבהירות הרקע
-        text_color = 'FFFFFF'  # ברירת מחדל - לבן
-        if section in ['materials', 'sizes']:  # צבעים בהירים
-            text_color = '000000'  # שחור לרקעים בהירים
-            
+        text_color = 'FFFFFF' if section not in ['materials', 'sizes'] else '000000'
         section_style.font = Font(name='Arial', size=12, bold=True, color=text_color)
         section_style.fill = PatternFill(fill_type='solid', start_color=color, end_color=color)
         section_style.border = Border(
@@ -465,7 +457,7 @@ def create_master_template(lang='he'):
             bottom=Side(border_style='thin', color='000000')
         )
         section_style.alignment = Alignment(
-            horizontal=t['alignment'],  # משתמש בערך המתאים לשפה - 'right' לעברית או 'left' לאנגלית
+            horizontal=t['alignment'],
             vertical='center', 
             wrap_text=True, 
             readingOrder=1 if t['direction'] == 'rtl' else 2
@@ -473,7 +465,6 @@ def create_master_template(lang='he'):
         if style_name not in wb.named_styles:
             wb.add_named_style(section_style)
     
-    # סגנון לכותרות בגליון הגדרות
     settings_header_style = NamedStyle(name='settings_header_style')
     settings_header_style.font = Font(name='Arial', size=12, bold=True, color='FFFFFF')
     settings_header_style.fill = PatternFill(fill_type='solid', start_color='FF0000', end_color='FF0000')
@@ -484,7 +475,7 @@ def create_master_template(lang='he'):
         bottom=Side(border_style='thin', color='000000')
     )
     settings_header_style.alignment = Alignment(
-        horizontal=t['alignment'],  # משתמש בערך המתאים לשפה - 'right' לעברית או 'left' לאנגלית
+        horizontal=t['alignment'],
         vertical='center', 
         wrap_text=True, 
         readingOrder=1 if t['direction'] == 'rtl' else 2
@@ -492,7 +483,6 @@ def create_master_template(lang='he'):
     if 'settings_header_style' not in wb.named_styles:
         wb.add_named_style(settings_header_style)
         
-    # סגנון לתאי נתונים בגליון הגדרות
     settings_value_style = NamedStyle(name='settings_value_style')
     settings_value_style.font = Font(name='Arial', size=11, bold=False)
     settings_value_style.border = Border(
@@ -502,7 +492,7 @@ def create_master_template(lang='he'):
         bottom=Side(border_style='thin', color='000000')
     )
     settings_value_style.alignment = Alignment(
-        horizontal=t['alignment'],  # משתמש בערך המתאים לשפה - 'right' לעברית או 'left' לאנגלית
+        horizontal=t['alignment'],
         vertical='center', 
         wrap_text=True, 
         readingOrder=1 if t['direction'] == 'rtl' else 2
@@ -510,269 +500,207 @@ def create_master_template(lang='he'):
     if 'settings_value_style' not in wb.named_styles:
         wb.add_named_style(settings_value_style)
 
-    # === גיליון הנחיות ===
+    # גיליון הנחיות
     instructions_sheet = wb.active
     instructions_sheet.title = t['sheets']['instructions']
     instructions_sheet.sheet_view.rightToLeft = (t['direction'] == 'rtl')
-    instructions_sheet.sheet_properties.tabColor = "0000FF"  # כחול
+    instructions_sheet.sheet_properties.tabColor = "0000FF"
     
-    # הוספת שורה ריקה בתחילת הגיליון עבור הלוגו
-    instructions_sheet.insert_rows(1, 2)  # מוסיף 2 שורות - אחת ללוגו ואחת לרווח
-    instructions_sheet.row_dimensions[1].height = 100  # גובה שורה ללוגו
+    instructions_sheet.insert_rows(1, 3)
+    instructions_sheet.row_dimensions[1].height = 100
+    instructions_sheet.row_dimensions[2].height = 20
+    instructions_sheet.row_dimensions[3].height = 30
     
-    # הוספת הלוגו
-    logo_path = os.path.join('public', 'images', 'placeholder-logo.png')
+    logo_path = os.path.join('public', 'images', 'placeholder-logo.jpg')
     if os.path.exists(logo_path):
         img = Image(logo_path)
-        img.width = 200  # רוחב הלוגו בפיקסלים
-        img.height = 80  # גובה הלוגו בפיקסלים
-        instructions_sheet.add_image(img, 'B1')  # שינוי מיקום הלוגו לעמודה B
+        img.width = 799
+        img.height = 134
+        instructions_sheet.merge_cells('A1:B1')
+        merged_cell = instructions_sheet['A1']
+        merged_cell.alignment = Alignment(horizontal='center', vertical='center')
+        merged_cell.fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+        merged_cell.border = Border(
+            left=Side(border_style='thin', color='000000'),
+            right=Side(border_style='thin', color='000000'),
+            top=Side(border_style='thin', color='000000'),
+            bottom=Side(border_style='thin', color='000000')
+        )
+        merged_cell.font = Font(name='Arial', size=11)
+        img.anchor = 'A1'
+        instructions_sheet.add_image(img)
+        merged_cell.protection = Protection(locked=True)
+
+    instructions_sheet.column_dimensions['A'].width = 6
+    instructions_sheet.column_dimensions['B'].width = 94
     
-    # עדכון רוחב עמודות - עמודה A לאינדקס/מספור, עמודה B לתוכן
-    instructions_sheet.column_dimensions['A'].width = 6  # עמודה צרה יותר למספרים
-    instructions_sheet.column_dimensions['B'].width = 94  # עמודה רחבה לתוכן
+    for row_idx in [1, 2]:
+        for cell in instructions_sheet[row_idx]:
+            cell.fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+            cell.border = Border(
+                left=Side(border_style='thin', color='000000'),
+                right=Side(border_style='thin', color='000000'),
+                top=Side(border_style='thin', color='000000'),
+                bottom=Side(border_style='thin', color='000000')
+            )
     
-    # הגדרת צבע רקע לבן לשורת הלוגו
-    for cell in instructions_sheet[1]:
-        cell.fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
-    
-    # מיפוי בין שורות לסגנונות - מעודכן לפי החלוקה הנכונה
     section_mapping = [
-        (1, 'instruction_header_style'),  # כותרת ראשית
-        (3, 'section_main_style'),  # גרסה
-        (4, 'section_main_style'),  # תאריך עדכון אחרון
-        (5, 'section_main_style'),  # כל הזכויות שמורות
-        (7, 'section_main_style'),  # מבנה הקובץ
-        (8, 'section_main_style'),  # הקובץ מכיל את הגיליונות הבאים
-        (9, 'section_main_style'),  # 1. הנחיות
-        (10, 'section_settings_style'),  # 2. הגדרות
-        (11, 'section_main_categories_style'),  # 3. קטגוריות ראשיות
-        (12, 'section_sub_categories_style'),  # 4. קטגוריות משנה
-        (13, 'section_colors_style'),  # 5. צבעים
-        (14, 'section_sizes_style'),  # 6. מידות
-        (15, 'section_materials_style'),  # 7. חומרים
-        (16, 'section_suppliers_style'),  # 8. ספקים
-        (17, 'section_products_style'),  # 9. מוצרים
-        (19, 'section_notes_style'),  # הנחיות כלליות
-        (20, 'section_notes_style'),  # 1. יש למלא את הנתונים
-        (21, 'section_notes_style'),  # א. קטגוריות ראשיות
-        (22, 'section_notes_style'),  # ב. קטגוריות משנה
-        (23, 'section_notes_style'),  # ג. צבעים
-        (24, 'section_notes_style'),  # ד. מידות
-        (25, 'section_notes_style'),  # ה. חומרים
-        (26, 'section_notes_style'),  # ו. ספקים
-        (27, 'section_notes_style'),  # ז. מוצרים
-        (29, 'section_notes_style'),  # 2. עמודות הקוד והמק"ט
-        (30, 'section_notes_style'),  # 3. בשדות עם רשימה
-        (31, 'section_notes_style'),  # 4. אין לשנות את מבנה הקובץ
-        (32, 'section_notes_style'),  # 5. ניתן להוסיף שורות נתונים
-        (34, 'section_notes_style'),  # פירוט השדות בכל גיליון
-        (36, 'section_main_categories_style'),  # קטגוריות ראשיות
-        (37, 'section_notes_style'),  # קוד: נוצר אוטומטית
-        (38, 'section_notes_style'),  # שם: שם הקטגוריה
-        (39, 'section_notes_style'),  # תיאור: תיאור מפורט
-        (40, 'section_notes_style'),  # סטטוס: פעיל/לא פעיל
-        (41, 'section_notes_style'),  # פעולה: עדכון/מחיקה/הוספה
-        (43, 'section_sub_categories_style'),  # קטגוריות משנה
-        (44, 'section_notes_style'),  # קוד: נוצר אוטומטית
-        (45, 'section_notes_style'),  # שם: שם תת-הקטגוריה
-        (46, 'section_notes_style'),  # תיאור: תיאור מפורט
-        (47, 'section_notes_style'),  # קטגוריה ראשית: בחירה מרשימה
-        (48, 'section_notes_style'),  # סטטוס: פעיל/לא פעיל
-        (49, 'section_notes_style'),  # פעולה: עדכון/מחיקה/הוספה
-        (51, 'section_colors_style'),  # צבעים
-        (52, 'section_notes_style'),  # קוד: נוצר אוטומטית
-        (53, 'section_notes_style'),  # שם: שם הצבע
-        (54, 'section_notes_style'),  # תיאור: תיאור מפורט
-        (55, 'section_notes_style'),  # סטטוס: פעיל/לא פעיל
-        (56, 'section_notes_style'),  # פעולה: עדכון/מחיקה/הוספה
-        (58, 'section_sizes_style'),  # מידות
-        (59, 'section_notes_style'),  # קוד: נוצר אוטומטית
-        (60, 'section_notes_style'),  # שם: המידה
-        (61, 'section_notes_style'),  # תיאור: פירוט מדויק
-        (62, 'section_notes_style'),  # סטטוס: פעיל/לא פעיל
-        (63, 'section_notes_style'),  # פעולה: עדכון/מחיקה/הוספה
-        (65, 'section_materials_style'),  # חומרים
-        (66, 'section_notes_style'),  # קוד: נוצר אוטומטית
-        (67, 'section_notes_style'),  # שם: שם החומר
-        (68, 'section_notes_style'),  # תיאור: מפרט טכני
-        (69, 'section_notes_style'),  # סטטוס: פעיל/לא פעיל
-        (70, 'section_notes_style'),  # פעולה: עדכון/מחיקה/הוספה
-        (72, 'section_suppliers_style'),  # ספקים
-        (73, 'section_notes_style'),  # קוד: נוצר אוטומטית
-        (74, 'section_notes_style'),  # שם: שם החברה
-        (75, 'section_notes_style'),  # איש קשר: שם איש
-        (76, 'section_notes_style'),  # אימייל: כתובת דוא"ל
-        (77, 'section_notes_style'),  # טלפון: מספר טלפון
-        (78, 'section_notes_style'),  # כתובת: כתובת מלאה
-        (79, 'section_notes_style'),  # סטטוס: פעיל/לא פעיל
-        (80, 'section_notes_style'),  # פעולה: עדכון/מחיקה/הוספה
-        (82, 'section_products_style'),  # מוצרים
-        (83, 'section_notes_style'),  # מק"ט: נוצר אוטומטית
-        (84, 'section_notes_style'),  # שם: שם המוצר
-        (85, 'section_notes_style'),  # תיאור: תיאור מפורט
-        (86, 'section_notes_style'),  # קטגוריה ראשית: בחירה מרשימה
-        (87, 'section_notes_style'),  # קטגוריית משנה: בחירה מרשימה
-        (88, 'section_notes_style'),  # ספק: בחירה מרשימה
-        (89, 'section_notes_style'),  # צבעים: בחירה מרשימה
-        (90, 'section_notes_style'),  # מידות: בחירה מרשימה
-        (91, 'section_notes_style'),  # חומרים: בחירה מרשימה
-        (92, 'section_notes_style'),  # כמות באריזה: מספר יחידות
-        (93, 'section_notes_style'),  # הוראות אריזה: הנחיות מיוחדות
-        (94, 'section_notes_style'),  # כמות בקרטון: מספר יחידות
-        (95, 'section_notes_style'),  # מחיר ליחידה: מחיר ב-USD
-        (96, 'section_notes_style'),  # סטטוס: פעיל/לא פעיל
-        (97, 'section_notes_style'),  # פעולה: עדכון/מחיקה/הוספה
-        (99, 'section_notes_style'),  # הערות חשובות
-        (100, 'section_notes_style'),  # 1. יש לוודא שכל השדות
-        (101, 'section_notes_style'),  # 2. בעת הוספת מוצר חדש
-        (102, 'section_notes_style'),  # 3. מחירים יש להזין
-        (103, 'section_notes_style'),  # 4. בכל שינוי יש לציין
-        (104, 'section_notes_style'),  # 5. אין למחוק שורות
-        (106, 'section_notes_style'),  # תמיכה
-        (107, 'section_notes_style'),  # במקרה של תקלה
-        (108, 'section_notes_style'),  # support@piordersystem.com
+        (4, 'instruction_header_style'),  # כותרת ראשית
+        (6, 'section_main_style'),        # גרסה
+        (7, 'section_main_style'),        # תאריך עדכון
+        (8, 'section_main_style'),        # זכויות יוצרים
+        (10, 'section_main_style'),       # מבנה הקובץ
+        (11, 'section_main_style'),       # הקובץ מכיל
+        (12, 'section_main_style'),       # הנחיות
+        (13, 'section_settings_style'),   # הגדרות
+        (14, 'section_main_categories_style'),  # קטגוריות ראשיות
+        (15, 'section_sub_categories_style'),   # קטגוריות משנה
+        (16, 'section_colors_style'),     # צבעים
+        (17, 'section_sizes_style'),      # מידות
+        (18, 'section_materials_style'),  # חומרים
+        (19, 'section_suppliers_style'),  # ספקים
+        (20, 'section_products_style'),   # מוצרים
+        (22, 'section_notes_style'),      # הנחיות כלליות
+        (23, 'section_notes_style'),      # יש למלא את הנתונים
+        (24, 'section_notes_style'),      # קטגוריות ראשיות
+        (25, 'section_notes_style'),      # קטגוריות משנה
+        (26, 'section_notes_style'),      # צבעים
+        (27, 'section_notes_style'),      # מידות
+        (28, 'section_notes_style'),      # חומרים
+        (29, 'section_notes_style'),      # ספקים
+        (30, 'section_notes_style'),      # מוצרים
+        (32, 'section_notes_style'),      # עמודות הקוד והמק"ט
+        (33, 'section_notes_style'),      # בשדות עם רשימה
+        (34, 'section_notes_style'),      # אין לשנות את מבנה הקובץ
+        (35, 'section_notes_style'),      # ניתן להוסיף שורות
+        (37, 'section_notes_style'),      # פירוט השדות
+        (39, 'section_main_categories_style'),  # קטגוריות ראשיות
+        (40, 'section_notes_style'),      # קוד
+        (41, 'section_notes_style'),      # שם
+        (42, 'section_notes_style'),      # תיאור
+        (43, 'section_notes_style'),      # סטטוס
+        (44, 'section_notes_style'),      # פעולה
+        (46, 'section_sub_categories_style'),   # קטגוריות משנה
+        (47, 'section_notes_style'),      # קוד
+        (48, 'section_notes_style'),      # שם
+        (49, 'section_notes_style'),      # תיאור
+        (50, 'section_notes_style'),      # קטגוריה ראשית
+        (51, 'section_notes_style'),      # סטטוס
+        (52, 'section_notes_style'),      # פעולה
+        (54, 'section_colors_style'),     # צבעים
+        (55, 'section_notes_style'),      # קוד
+        (56, 'section_notes_style'),      # שם
+        (57, 'section_notes_style'),      # תיאור
+        (58, 'section_notes_style'),      # סטטוס
+        (59, 'section_notes_style'),      # פעולה
+        (61, 'section_sizes_style'),      # מידות
+        (62, 'section_notes_style'),      # קוד
+        (63, 'section_notes_style'),      # שם
+        (64, 'section_notes_style'),      # תיאור
+        (65, 'section_notes_style'),      # סטטוס
+        (66, 'section_notes_style'),      # פעולה
+        (68, 'section_materials_style'),  # חומרים
+        (69, 'section_notes_style'),      # קוד
+        (70, 'section_notes_style'),      # שם
+        (71, 'section_notes_style'),      # תיאור
+        (72, 'section_notes_style'),      # סטטוס
+        (73, 'section_notes_style'),      # פעולה
+        (75, 'section_suppliers_style'),  # ספקים
+        (76, 'section_notes_style'),      # קוד
+        (77, 'section_notes_style'),      # שם
+        (78, 'section_notes_style'),      # איש קשר
+        (79, 'section_notes_style'),      # אימייל
+        (80, 'section_notes_style'),      # טלפון
+        (81, 'section_notes_style'),      # כתובת
+        (82, 'section_notes_style'),      # קוד התחלתי
+        (83, 'section_notes_style'),      # סטטוס
+        (84, 'section_notes_style'),      # פעולה
+        (86, 'section_products_style'),   # מוצרים
+        (87, 'section_notes_style'),      # מק"ט
+        (88, 'section_notes_style'),      # שם
+        (89, 'section_notes_style'),      # תיאור
+        (90, 'section_notes_style'),      # קטגוריה ראשית
+        (91, 'section_notes_style'),      # קטגוריית משנה
+        (92, 'section_notes_style'),      # ספק
+        (93, 'section_notes_style'),      # צבעים
+        (94, 'section_notes_style'),      # מידות
+        (95, 'section_notes_style'),      # חומרים
+        (96, 'section_notes_style'),      # כמות באריזה
+        (97, 'section_notes_style'),      # הוראות אריזה
+        (98, 'section_notes_style'),      # כמות בקרטון
+        (99, 'section_notes_style'),      # מחיר ליחידה
+        (100, 'section_notes_style'),     # סטטוס
+        (101, 'section_notes_style'),     # פעולה
+        (103, 'section_notes_style'),     # הערות חשובות
+        (104, 'section_notes_style'),     # יש לוודא שכל השדות
+        (105, 'section_notes_style'),     # בעת הוספת מוצר חדש
+        (106, 'section_notes_style'),     # מחירים יש להזין
+        (107, 'section_notes_style'),     # בכל שינוי יש לציין
+        (108, 'section_notes_style'),     # אין למחוק שורות
+        (109, 'section_notes_style'),     # קוד התחלתי בספקים
+        (110, 'section_notes_style'),     # חשוב: הזנת מק"ט ידני
+        (112, 'section_notes_style'),     # תמיכה
+        (113, 'section_notes_style'),     # במקרה של תקלה
+        (114, 'section_notes_style')      # אימייל תמיכה
     ]
     
-    # פונקציה משופרת לפיצול תוכן ההנחיות למספרים ותוכן
     def split_instruction_content(row_idx, text):
-        """
-        מפצל את הטקסט למספור ותוכן
-        row_idx: אינדקס השורה
-        text: הטקסט המלא
-        מחזיר: (number, content) - המספר והתוכן המפוצלים
-        """
-        import re
-        
-        # פיצול לטקסט הכולל מספרים/אותיות ותוכן
-        if t['direction'] == 'rtl':  # עברית
-            # בדיקה אם יש מספור בסוף שורה (למשל "הנחיות - גיליון נוכחי .1")
+        if t['direction'] == 'rtl':
             rtl_number_pattern = re.compile(r'(.*?)\s+\.(\d+)$')
             rtl_letter_pattern = re.compile(r'(.*?)\s+\.([א-ת])$')
             rtl_dash_pattern = re.compile(r'(.*?)\s+-$')
-            
-            # חיפוש מספר בסוף
             match = rtl_number_pattern.match(text)
             if match:
                 return '.' + match.group(2), match.group(1)
-            
-            # חיפוש אות בסוף
             match = rtl_letter_pattern.match(text)
             if match:
                 return '.' + match.group(2), match.group(1)
-            
-            # חיפוש מקף בסוף
             match = rtl_dash_pattern.match(text)
             if match:
                 return '-', match.group(1)
-            
-            # מקרים ספציפיים לדפוסי הטקסט שבטבלה
             if text.endswith(' -'):
                 parts = text.split(' -', 1)
                 return '-', parts[0]
-            
-            # חיפוש פסיק עם מספר (במקום נקודה) כמו "תיאור: תיאור מפורט של הקטגוריה ,"
-            rtl_comma_number_pattern = re.compile(r'(.*?)\s+,(\d+)$')
-            match = rtl_comma_number_pattern.match(text)
-            if match:
-                return '.' + match.group(2), match.group(1)
-                
             return '', text
-        else:  # אנגלית
-            # בדיקת דפוסים שונים באנגלית
+        else:
             ltr_number_pattern = re.compile(r'^(\d+)[\.\)] (.*)')
             ltr_letter_pattern = re.compile(r'^([a-g])[\.\)] (.*)')
             ltr_dash_pattern = re.compile(r'^- (.*)')
-            
-            # חיפוש מספר בתחילה
             match = ltr_number_pattern.match(text)
             if match:
                 return match.group(1) + '.', match.group(2)
-            
-            # חיפוש אות בתחילה
             match = ltr_letter_pattern.match(text)
             if match:
                 return match.group(1) + '.', match.group(2)
-            
-            # חיפוש מקף בתחילה
             match = ltr_dash_pattern.match(text)
             if match:
                 return '-', match.group(1)
-                
             return '', text
     
-    # לפני המילוי של הטבלה, נעבור על כל השורות ונפצל את הטקסט לשתי עמודות
     preprocessed_instructions = []
     for row_idx, instruction in enumerate(t['instructions_text'], 1):
         text = instruction[0]
         number, content = split_instruction_content(row_idx, text)
-        
-        # מקרים מיוחדים שלא נתפסים בפונקציה הכללית
-        # כאשר יש שני נתונים בשורה אחת כמו "קוד: נוצר אוטומטית (CAT001, CAT002, ...) -"
         if ":" in content and not number and t['direction'] == 'rtl':
-            # אם יש נקודתיים וזו שפה עברית, וזה לא נקלט כבר
             number = '-'
-            
         preprocessed_instructions.append((number, content))
     
-    # מילוי הטבלה עם הנתונים המעובדים
     for row_idx, (number, content) in enumerate(preprocessed_instructions, 1):
-        # הגדרת סגנון לשורה מסוימת
-        matching_section = next((style for r, style in section_mapping if r == row_idx), None)
-        style_to_apply = 'instruction_header_style' if row_idx == 1 else (matching_section or 'instruction_cell_style')
-        
-        # הוספת הערכים לתאים עם הסגנון המתאים
+        if row_idx == 1:
+            continue
         num_cell = instructions_sheet.cell(row=row_idx, column=1, value=number)
         content_cell = instructions_sheet.cell(row=row_idx, column=2, value=content)
-        
+        style_to_apply = next((style for r, style in section_mapping if r == row_idx), 'instruction_cell_style')
         num_cell.style = style_to_apply
         content_cell.style = style_to_apply
     
-    # הגדרת הגנה על הגיליון
+    for row in range(1, instructions_sheet.max_row + 1):
+        for col in range(1, instructions_sheet.max_column + 1):
+            instructions_sheet.cell(row=row, column=col).protection = Protection(locked=True)
+    
     instructions_sheet.protection.sheet = True
-    instructions_sheet.protection.password = SHEET_PASSWORD
     instructions_sheet.protection.enable()
 
-    # === גיליון הגדרות ===
-    settings_sheet = wb.create_sheet(t['sheets']['settings'])
-    settings_sheet.sheet_view.rightToLeft = (t['direction'] == 'rtl')
-    settings_sheet.sheet_properties.tabColor = "FF0000"  # אדום
-    
-    # הגדרות מק"ט בעברית ובאנגלית
-    sku_settings = {
-        'he': [
-            ['הגדרות מק"ט', ''],
-            ['קידומת', 'HY'],
-            ['כמות תווים', '6'],
-            ['דוגמה', '=B2&REPT("0",B3-LEN(B2)-1)&"1"']  # נוסחה נכונה שמוסיפה מספר נכון של אפסים
-        ],
-        'en': [
-            ['SKU Settings', ''],
-            ['Prefix', 'HY'],
-            ['Number of Characters', '6'],
-            ['Example', '=B2&REPT("0",B3-LEN(B2)-1)&"1"']  # נוסחה נכונה שמוסיפה מספר נכון של אפסים
-        ]
-    }[lang]
-    
-    for row_idx, (setting, value) in enumerate(sku_settings, 1):
-        settings_sheet.cell(row=row_idx, column=1, value=setting)
-        settings_sheet.cell(row=row_idx, column=2, value=value)
-        
-        # יישום סגנונות
-        if row_idx == 1:
-            settings_sheet.cell(row=row_idx, column=1).style = 'settings_header_style'
-            settings_sheet.cell(row=row_idx, column=2).style = 'settings_header_style'
-        else:
-            settings_sheet.cell(row=row_idx, column=1).style = 'settings_value_style'
-            settings_sheet.cell(row=row_idx, column=2).style = 'settings_value_style'
-    
-    # הוספת הערה לתאים הפתוחים לעריכה
-    prefix_comment = Comment('ניתן לשנות את קידומת המק"ט לפי הצורך', 'System')
-    settings_sheet.cell(row=2, column=2).comment = prefix_comment
-    
-    digits_comment = Comment('ניתן לשנות את מספר התווים הכולל של המק"ט', 'System')
-    settings_sheet.cell(row=3, column=2).comment = digits_comment
-    
     # עדכון הגנות הגליון עם סיסמה
     for sheet in wb.worksheets:
         if sheet.title != t['sheets']['instructions']:
@@ -790,88 +718,87 @@ def create_master_template(lang='he'):
             sheet.protection.deleteRows = True
             sheet.protection.sort = True
             sheet.protection.autoFilter = True
-            
-            # נעילת כותרות בלבד (לא עמודת קוד/מק"ט)
-            for row in range(1, sheet.max_row + 1):
-                for col in range(1, sheet.max_column + 1):
-                    cell = sheet.cell(row=row, column=col)
-                    if row == 1:  # רק כותרות נעולות
-                        cell.protection = Protection(locked=True)
-                    else:
-                        cell.protection = Protection(locked=False)
+            sheet.protection.scenarios = True  # מאפשר תרחישים
+            sheet.protection.objects = True    # מגן על אובייקטים
+            sheet.protection.pivotTables = True  # מגן על טבלאות ציר
+            sheet.protection.selectLockedCells = True  # מאפשר בחירת תאים נעולים
+            sheet.protection.selectUnlockedCells = True  # מאפשר בחירת תאים לא נעולים
 
-    # יישום הגנה מחודשת לגיליון הגדרות לאחר הלולאה הכללית
-    settings_sheet = wb[t['sheets']['settings']]
-    # נעילת כל התאים בגיליון הגדרות מלבד התאים של קידומת המק"ט וכמות התווים
+    # גיליון הגדרות
+    settings_sheet = wb.create_sheet(t['sheets']['settings'])
+    settings_sheet.sheet_view.rightToLeft = (t['direction'] == 'rtl')
+    settings_sheet.sheet_properties.tabColor = "FF0000"
+    
+    sku_settings = {
+        'he': [
+            ['הגדרות מק"ט', ''],
+            ['קידומת', 'HY'],
+            ['כמות תווים', '6'],
+            ['דוגמה', '=B2&REPT("0",B3-LEN(B2)-1)&"1"']
+        ],
+        'en': [
+            ['SKU Settings', ''],
+            ['Prefix', 'HY'],
+            ['Number of Characters', '6'],
+            ['Example', '=B2&REPT("0",B3-LEN(B2)-1)&"1"']
+        ]
+    }[lang]
+    
+    for row_idx, (setting, value) in enumerate(sku_settings, 1):
+        settings_sheet.cell(row=row_idx, column=1, value=setting).style = 'settings_header_style' if row_idx == 1 else 'settings_value_style'
+        settings_sheet.cell(row=row_idx, column=2, value=value).style = 'settings_header_style' if row_idx == 1 else 'settings_value_style'
+    
+    settings_sheet.cell(row=2, column=2).comment = Comment('ניתן לשנות את קידומת המק"ט לפי הצורך', 'System')
+    settings_sheet.cell(row=3, column=2).comment = Comment('ניתן לשנות את מספר התווים הכולל של המק"ט', 'System')
+    
     for row in range(1, 5):
         for col in range(1, 3):
             cell = settings_sheet.cell(row=row, column=col)
-            # נעילת כל התאים מלבד B2 ו-B3 (קידומת וכמות תווים)
-            if row == 2 and col == 2:  # תא B2 - קידומת
-                cell.protection = Protection(locked=False)
-            elif row == 3 and col == 2:  # תא B3 - כמות תווים
-                cell.protection = Protection(locked=False)
-            else:
-                cell.protection = Protection(locked=True)
+            cell.protection = Protection(locked=False if (row == 2 or row == 3) and col == 2 else True)
     
-    # הפעלת הגנה על הגיליון
     settings_sheet.protection.sheet = True
-    settings_sheet.protection.password = SHEET_PASSWORD
     settings_sheet.protection.enable()
     
-    # הגדרת הרשאות ספציפיות
-    settings_sheet.protection.formatCells = False
-    settings_sheet.protection.formatColumns = False
-    settings_sheet.protection.formatRows = False
-    settings_sheet.protection.insertColumns = False
-    settings_sheet.protection.insertRows = False
-    settings_sheet.protection.deleteColumns = False
-    settings_sheet.protection.deleteRows = False
-    settings_sheet.protection.sort = False
-    settings_sheet.protection.autoFilter = False
-
     settings_sheet.column_dimensions['A'].width = 20
     settings_sheet.column_dimensions['B'].width = 20
 
-    # עדכון הטקסט בהנחיות - תיקון המספור
-    t['instructions_text'] = [
-        [text[0].replace(' 1.', '1.').replace(' 2.', '2.').replace(' 3.', '3.').replace(' 4.', '4.').replace(' 5.', '5.')] 
-        if any(num in text[0] for num in ['1.', '2.', '3.', '4.', '5.'])
-        else [text[0]]
-        for text in t['instructions_text']
-    ]
-
-    # === יצירת כל הגיליונות ===
+    # יצירת כל הגיליונות
     sheets_config = {
         'main_categories': {
             'headers': [t['headers']['code'], t['headers']['name'], t['headers']['description'], t['headers']['status'], t['headers']['action']],
             'widths': [15, 30, 40, 15, 15],
-            'color': '70AD47'  # ירוק כהה - תואם לגיליון ההנחיות
+            'color': '70AD47',
+            'lock_code': True  # נעילת עמודת הקוד
         },
         'sub_categories': {
             'headers': [t['headers']['code'], t['headers']['name'], t['headers']['description'], t['headers']['main_category'], t['headers']['status'], t['headers']['action']],
             'widths': [15, 30, 40, 30, 15, 15],
-            'color': '5B9BD5'  # כחול - תואם לגיליון ההנחיות
+            'color': '5B9BD5',
+            'lock_code': True  # נעילת עמודת הקוד
         },
         'colors': {
             'headers': [t['headers']['code'], t['headers']['name'], t['headers']['description'], t['headers']['status'], t['headers']['action']],
             'widths': [15, 30, 40, 15, 15],
-            'color': 'C00000'  # אדום כהה - תואם לגיליון ההנחיות
+            'color': 'C00000',
+            'lock_code': True  # נעילת עמודת הקוד
         },
         'sizes': {
             'headers': [t['headers']['code'], t['headers']['name'], t['headers']['description'], t['headers']['status'], t['headers']['action']],
             'widths': [15, 30, 40, 15, 15],
-            'color': 'ED7D31'  # כתום - תואם לגיליון ההנחיות
+            'color': 'ED7D31',
+            'lock_code': True  # נעילת עמודת הקוד
         },
         'materials': {
             'headers': [t['headers']['code'], t['headers']['name'], t['headers']['description'], t['headers']['status'], t['headers']['action']],
             'widths': [15, 30, 40, 15, 15],
-            'color': 'FFC000'  # צהוב-כתום - תואם לגיליון ההנחיות
+            'color': 'FFC000',
+            'lock_code': True  # נעילת עמודת הקוד
         },
         'suppliers': {
-            'headers': [t['headers']['code'], t['headers']['name'], t['headers']['contact'], t['headers']['email'], t['headers']['phone'], t['headers']['address'], t['headers']['status'], t['headers']['action']],
-            'widths': [15, 30, 30, 40, 20, 50, 15, 15],
-            'color': '7030A0'  # סגול כהה - תואם לגיליון ההנחיות
+            'headers': [t['headers']['code'], t['headers']['name'], t['headers']['contact'], t['headers']['email'], t['headers']['phone'], t['headers']['address'], t['headers']['start_code'], t['headers']['status'], t['headers']['action']],
+            'widths': [15, 30, 30, 40, 20, 50, 15, 15, 15],
+            'color': '7030A0',
+            'lock_code': True  # נעילת עמודת הקוד
         },
         'products': {
             'headers': [
@@ -883,7 +810,8 @@ def create_master_template(lang='he'):
                 t['headers']['status'], t['headers']['action']
             ],
             'widths': [15, 30, 40, 20, 20, 20, 30, 30, 20, 15, 40, 15, 15, 15, 15],
-            'color': '00B050'  # ירוק בהיר - תואם לגיליון ההנחיות
+            'color': '00B050',
+            'lock_code': False  # עמודת המק"ט פתוחה לעריכה
         }
     }
 
@@ -891,66 +819,67 @@ def create_master_template(lang='he'):
         sheet = wb.create_sheet(t['sheets'][sheet_name])
         sheet.sheet_view.rightToLeft = (t['direction'] == 'rtl')
         sheet.sheet_properties.tabColor = config['color']
+        sheet.row_dimensions[1].height = 30
         
-        # הגדרת גובה שורת כותרת
-        sheet.row_dimensions[1].height = 30  # גובה שורת כותרת
-        
-        # הגדרת כותרות ורוחב עמודות
+        # הגדרת כותרות
         for col, (header, width) in enumerate(zip(config['headers'], config['widths']), 1):
-            # הגדרת ערך התא
             cell = sheet.cell(row=1, column=col, value=header)
-            # יישום סגנון כותרת
             cell.style = 'header_style'
-            # הגדרת רוחב עמודה
             sheet.column_dimensions[get_column_letter(col)].width = width
+            cell.protection = Protection(locked=True)
         
-        # הוספת סגנון לכל התאים
+        # הגדרת תאים ונוסחאות
         for row in range(2, 1001):
             for col in range(1, len(config['headers']) + 1):
                 cell = sheet.cell(row=row, column=col)
                 cell.style = 'cell_style'
+                # נעילה לפי lock_code: עמודה A נעולה אם lock_code=True, פתוחה אם False
+                if col == 1:
+                    cell.protection = Protection(locked=config['lock_code'])
+                else:
+                    cell.protection = Protection(locked=False)
 
-        # הוספת נוסחאות לקודים אוטומטיים
+    # הוספת נוסחאות לקודים אוטומטיים
         prefix = {
             'main_categories': 'CAT',
-            'sub_categories': None,  # מטופל בנפרד
+            'sub_categories': None,
             'colors': 'COL',
             'sizes': 'SIZ',
             'materials': 'MAT',
             'suppliers': 'SUP',
-            'products': None  # מטופל בנפרד - נלקח מגיליון הגדרות
+            'products': None
         }[sheet_name]
         
         if prefix:
             for row in range(2, 1001):
-                cell = sheet.cell(row=row, column=1)
-                cell.protection = Protection(locked=True)
-                cell.value = generate_code_formula(prefix, row)
+                sheet.cell(row=row, column=1).value = generate_code_formula(prefix, row)
         elif sheet_name == 'sub_categories':
             for row in range(2, 1001):
-                cell = sheet.cell(row=row, column=1)
-                cell.protection = Protection(locked=True)
-                cell.value = f'=IF(AND(B{row}<>"",D{row}<>""),INDEX(\'{t["sheets"]["main_categories"]}\'!$A$2:$A$1000,MATCH(D{row},\'{t["sheets"]["main_categories"]}\'!$B$2:$B$1000,0))&"-"&TEXT(COUNTIF(D$2:D{row},D{row}),"000"),"")'
+                sheet.cell(row=row, column=1).value = generate_subcat_code_formula(row, t['sheets']['main_categories'])
         elif sheet_name == 'products':
-            # נוסחה למק"ט בעמודה הראשונה
             for row in range(2, 1001):
-                cell = sheet.cell(row=row, column=1)
-                cell.protection = Protection(locked=False)  # התא לא נעול - מאפשר הזנה ידנית
-                
-                # שימוש באותה נוסחה בדיוק כמו בדוגמה בגיליון הגדרות
-                cell.value = f'=IF(B{row}<>"",\'{t["sheets"]["settings"]}\'!B2&REPT("0",\'{t["sheets"]["settings"]}\'!B3-LEN(\'{t["sheets"]["settings"]}\'!B2)-1)&(ROW()-1),"")'
-
-            # הוספת הערה לעמודת המק"ט
-            comment = Comment('ניתן להזין מק"ט ידנית או להשאיר את הנוסחה האוטומטית.\nהזנת ערך ידנית תדרוס את הנוסחה האוטומטית.', 'System')
-            sheet['A1'].comment = comment
+                sheet.cell(row=row, column=1).value = (
+                    f'=IF(AND(B{row}<>"",F{row}<>""),'  # בדיקה שיש שם מוצר וספק
+                    f'  \'{t["sheets"]["settings"]}\'!B2&'  # קידומת מההגדרות
+                    f'  TEXT('
+                    f'    IF(VLOOKUP(F{row},\'{t["sheets"]["suppliers"]}\'!B:G,6,FALSE)="",'  # אם אין קוד התחלתי לספק
+                    f'      COUNTIFS(F$2:F{row},F{row}),'  # ספירת מוצרים של אותו ספק
+                    f'      VALUE(VLOOKUP(F{row},\'{t["sheets"]["suppliers"]}\'!B:G,6,FALSE)) + COUNTIFS(F$2:F{row},F{row}) - 1'  # קוד התחלתי + ספירה
+                    f'    )'
+                    f'  ,"0000")'
+                    f',"")'
+                )
+        
+        # הגדרת הגנות הגליון
+        sheet.protection.sheet = True
+        sheet.protection.enable()
 
     # עדכון ולידציות
     for sheet_name in sheets_config:
         sheet = wb[t['sheets'][sheet_name]]
-        status_col = len(sheet[1]) - 1  # עמודה לפני אחרונה
-        action_col = len(sheet[1])  # עמודה אחרונה
+        status_col = len(sheet[1]) - 1
+        action_col = len(sheet[1])
         
-        # ולידציה לסטטוס
         status_validation = DataValidation(
             type="list",
             formula1=f'"{",".join(t["validations"]["status"])}"',
@@ -962,7 +891,6 @@ def create_master_template(lang='he'):
         sheet.add_data_validation(status_validation)
         status_validation.add(f'{get_column_letter(status_col)}2:{get_column_letter(status_col)}1000')
 
-        # ולידציה לפעולה
         action_validation = DataValidation(
             type="list",
             formula1=f'"{",".join(t["validations"]["action"])}"',
@@ -974,7 +902,6 @@ def create_master_template(lang='he'):
         sheet.add_data_validation(action_validation)
         action_validation.add(f'{get_column_letter(action_col)}2:{get_column_letter(action_col)}1000')
 
-    # עדכון ולידציות נוספות בגיליון מוצרים
     products_sheet = wb[t['sheets']['products']]
     products_validations = {
         'main_category': {'col': 4, 'source': t['sheets']['main_categories']},
@@ -997,7 +924,6 @@ def create_master_template(lang='he'):
         products_sheet.add_data_validation(validation)
         validation.add(f'{get_column_letter(config["col"])}2:{get_column_letter(config["col"])}1000')
 
-    # הוספת ולידציה לקטגוריה ראשית בגיליון קטגוריות משנה
     sub_categories_sheet = wb[t['sheets']['sub_categories']]
     main_category_validation = DataValidation(
         type="list",
@@ -1010,13 +936,37 @@ def create_master_template(lang='he'):
     sub_categories_sheet.add_data_validation(main_category_validation)
     main_category_validation.add('D2:D1000')
 
-    # שמירת הקובץ
+    # הגדרות עדכון אוטומטי של קישורים
+    wb.keep_links = False  # לא לשמור קישורים
+    wb.keep_vba = True    # שומר על מאקרו VBA אם קיים
+    
+    # שמירת הקובץ עם הגדרות אבטחה זהות
+    wb_protection = openpyxl.workbook.protection.WorkbookProtection(
+        workbookPassword=SHEET_PASSWORD,
+        lockStructure=True,
+        lockWindows=True
+    )
+    wb_protection.updateLinks = False  # מניעת עדכון קישורים אוטומטי
+    wb.security = wb_protection
+    
+    # הגדרת תכונות נוספות לקובץ
+    for sheet in wb.worksheets:
+        sheet.sheet_state = 'visible'  # וידוא שכל הגליונות גלויים
+        if hasattr(sheet, 'updateLinks'):
+            sheet.updateLinks = False  # מניעת עדכון קישורים ברמת הגליון
+    
+    # הגדרות נוספות למניעת עדכון קישורים
+    wb.properties.allowRefreshQuery = False  # מניעת רענון שאילתות
+    if hasattr(wb, 'disable_links'):
+        wb.disable_links = True  # מניעת קישורים חיצוניים
+    if hasattr(wb, 'update_links'):
+        wb.update_links = False  # מניעת עדכון קישורים
+    
+    # שמירת הקובץ עם הגדרות מיוחדות
     wb.save(output_file)
+    
     print(f"Template created successfully at {output_file}!")
 
 if __name__ == "__main__":
-    # יצירת גרסה בעברית
     create_master_template(lang='he')
-    
-    # יצירת גרסה באנגלית
     create_master_template(lang='en') 

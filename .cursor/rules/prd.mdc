@@ -3,254 +3,464 @@ description:
 globs: 
 alwaysApply: true
 ---
+**Product Requirements Document (PRD)**  
+**Project:** FlexiPI – Supplier Order Management & PI Generation  
+**Version:** 1.0  
+**Date:** [30.03.2025]  
+**Owner:** [kobi / Product Manager]  
 
-# Your rule content
+---
 
-- You can @ files here
-- You can use markdown but dont have to
+## **1. Introduction & Overview**
 
-מסמך אפיון (PRD) - מערכת ליצירת הזמנות PI ויצוא לאקסל
+### **1.1 Product Summary**
+FlexiPI is a next-generation, automated procurement platform designed to simplify and streamline the process of creating purchase orders (Proforma Invoices) for businesses managing multiple suppliers—particularly eCommerce store owners who source products from overseas. The platform centralizes product catalogs, supplier interactions, and order management into one intuitive system.
 
-1. מטרת המערכת
+### **1.2 Brand Information**
+- **Brand Name:** FlexiPI  
+- **Tagline:** "Seamless Supplier Orders, Simplified."  
+- **Core Brand Colors:**  
+  - Deep Teal (#008F8C) – Innovation, trust, and fluidity  
+  - Golden Orange (#FF9800) – Vibrancy, energy, and action  
+  - Dark Gray (#2E2E2E) – Stability, professionalism, and balance  
 
-המערכת מיועדת לניהול מאגר המוצרים וליצירת הזמנות PI (Proforma Invoice) בצורה חכמה ואוטומטית, עם ייצוא לקובץ Excel בפורמט מובנה.
+### **1.3 Brand Vision**
+To revolutionize supplier order management by providing an automated platform for businesses to manage product catalogs, place purchase orders, track deliveries, and streamline supplier relationships—eliminating manual inefficiencies and empowering businesses with a smarter procurement solution.
 
-2. תכונות עיקריות
+### **1.4 Brand Mission**
+To provide businesses with an intuitive, user-friendly platform that simplifies procurement, optimizes supplier relationships, and enhances operational efficiency through seamless order management and real-time tracking.
 
-ניהול מאגר מוצרים:
+### **1.5 Core Values**
+1. **Efficiency:** Automate and simplify procurement workflows.  
+2. **Innovation:** Constantly evolving with cutting-edge solutions.  
+3. **Transparency:** Provide full visibility into supplier orders and product management.  
+4. **Reliability:** Ensure a seamless and dependable ordering process.
 
-שמירת רשימת מוצרים במסד נתונים מקומי (PostgreSQL).
+---
 
-כל מוצר יכיל את השדות הבאים:
+## **2. Objectives & Goals**
 
-מק"ט (HY1XXX) - נוצר אוטומטית לפי מבנה קבוע.
+1. **Streamline Ordering Process**  
+   - Automate the creation of Proforma Invoices (PI).  
+   - Enable quick and accurate calculation of product units, packaging, and total cost.  
 
-תיאור המוצר.
+2. **Centralize Product & Supplier Management**  
+   - Store and manage product data, including images, descriptions, pricing, packaging details, and availability status.  
+   - Provide a single source of truth for all product information.  
 
-תמונה.
+3. **Generate Professional Documentation**  
+   - Export orders (PI) to Excel using a pre-defined template.  
+   - Include essential information such as total units, cartons, pricing, images, and order status.  
 
-צבעים זמינים.
+4. **Provide a Modern, Responsive Experience**  
+   - Ensure a fully responsive UI that works seamlessly on desktops, tablets, and mobile browsers.  
+   - Offer multi-language support (Hebrew/English) with no hard-coded text—using language files instead.  
 
-מידות זמינות.
+5. **Empower Users & Admins**  
+   - Provide a self-service user profile, subscription management, invoice management, and helpdesk ticketing.  
+   - Enable an Admin Dashboard for managing dynamic content, user roles, discount coupons, promotions, and more.
 
-כמות באריזה.
+---
+
+## **3. Technology Stack**
 
-הוראות אריזה.
+1. **Frontend:**  
+   - **Framework:** Next.js 15 + React 19  
+   - **UI Components:** [shadcn/ui](https://ui.shadcn.com/) (or equivalent)  
+   - **Styling:** Tailwind CSS 3.5  
+
+2. **Backend & Database:**  
+   - **Database:** Supabase (PostgreSQL)  
+   - **ORM/Database Access:** Prisma  
+   - **API Routes:** Next.js API Routes  
+
+3. **Authentication:**  
+   - **Providers:** Email/password or Google OAuth (NextAuth or equivalent solution)  
+
+4. **File Storage (for images):**  
+   - Can use Supabase storage or an external service like AWS S3 (depending on final deployment)  
 
-כמות נדרשת לקרטון.
+5. **Export to Excel:**  
+   - Use libraries such as `exceljs` or `xlsx` to generate custom Excel files with product images and dynamic fields.
 
-מחיר ליחידה.
+6. **Internationalization (i18n):**  
+   - No hard-coded text.  
+   - Use i18n frameworks or libraries like [react-i18next](https://react.i18next.com/) or [next-intl](https://github.com/amannn/next-intl).  
+   - Store text in JSON or YAML language files.
 
-קטגוריה.
-
-סטטוס (זמין/לא זמין).
-
-ממשק הזמנות:
-
-בחירת קטגוריה להצגת מוצרים בטבלה.
-
-הזנת כמות הזמנה ביחידות (אריזות) לכל מוצר.
-
-חישוב אוטומטי של מספר היחידות הכולל על פי כמות באריזה.
-
-הוספת המוצר להזמנה.
-
-מעבר בין קטגוריות והוספת מוצרים נוספים להזמנה.
-
-ייצוא קובץ Excel:
-
-יצירת קובץ המבוסס על תבנית מוכנה.
-
-הכנסת מידע דינמי כגון תאריך, מספר PI אוטומטי.
-
-הצגת כל המוצרים עם הנתונים שלהם, כולל תמונות.
-
-חישוב סה"כ יחידות, סה"כ אריזות, סה"כ קרטונים וסכום כולל.
-
-ניהול מוצרים ועדכון מערכת:
-
-אפשרות להוספת מוצרים חדשים.
-
-עדכון פרטי מוצרים קיימים.
-
-שינוי סטטוס (זמין / לא זמין).
-
-3. טכנולוגיה
-
-בסיס נתונים: PostgreSQL (מקומי).
-
-פלטפורמת פיתוח: Next.js עם TypeScript עבור Backend ו-Frontend.
-
-חיבור למסד הנתונים: Prisma או pg-promise לחיבור נוח לפוסטגרס.
-
-ממשק משתמש: React עם Tailwind CSS לטבלה אינטראקטיבית עם חיפוש וסינון.
-
-ייצוא לאקסל: שימוש בספריית exceljs או xlsx ליצירת קבצים בפורמט מותאם אישית.
-
-API Routes ב-Next.js לניהול קריאות לבסיס הנתונים וליצירת קבצי ההזמנה.
-
-4. מבנה בסיס הנתונים
-
-טבלת מוצרים (products):
-
-עמודה
-
-סוג נתונים
-
-תיאור
-
-id
-
-SERIAL (PK)
-
-מזהה ייחודי
-
-sku
-
-TEXT UNIQUE
-
-מק"ט (HY1XXX)
-
-name
-
-TEXT
-
-שם המוצר
-
-image_url
-
-TEXT
-
-תמונת המוצר
-
-colors
-
-TEXT[]
-
-צבעים זמינים
-
-sizes
-
-TEXT[]
-
-מידות זמינות
-
-units_per_pack
-
-INT
-
-כמות באריזה
-
-packing_info
-
-TEXT
-
-הוראות אריזה
-
-units_per_carton
-
-INT
-
-כמות ליחידת קרטון
-
-price_per_unit
-
-DECIMAL(10,2)
-
-מחיר ליחידה
-
-category
-
-TEXT
-
-קטגוריה
-
-status
-
-TEXT
-
-סטטוס (זמין/לא זמין)
-
-טבלת הזמנות (orders):
-
-עמודה
-
-סוג נתונים
-
-תיאור
-
-id
-
-SERIAL (PK)
-
-מזהה הזמנה
-
-pi_number
-
-TEXT UNIQUE
-
-מספר PI ייחודי
-
-created_at
-
-TIMESTAMP
-
-תאריך יצירה
-
-total_amount
-
-DECIMAL(10,2)
-
-סכום כולל
-
-טבלת פריטים בהזמנה (order_items):
-
-עמודה
-
-סוג נתונים
-
-תיאור
-
-id
-
-SERIAL (PK)
-
-מזהה
-
-order_id
-
-INT (FK)
-
-מזהה ההזמנה
-
-product_id
-
-INT (FK)
-
-מזהה המוצר
-
-quantity
-
-INT
-
-כמות באריזות
-
-total_units
-
-INT
-
-חישוב כמות כוללת לפי אריזות
-
-price
-
-DECIMAL(10,2)
-
-מחיר כולל
-
-5. שימושים
-
-ייעול תהליך הכנת הזמנות.
-
-חיסכון בזמן על ידי יצירת קובץ Excel אוטומטי.
-
-שמירה על סדר ודיוק בפרטי המוצרים והמחירים.
+---
+
+## **4. Feature Breakdown**
+
+### **4.1 Product Management**
+- **Create/Edit Products**  
+  - **Fields:** SKU, Name, Image URL, Colors, Sizes, Units per Pack, Packing Info, Units per Carton, Price per Unit, Category, Status (Available/Unavailable).  
+  - **SKU Generation:** Auto-generate SKU based on a fixed pattern (e.g., HY1XXX).  
+
+- **Product Status**  
+  - Mark products as “Available” or “Unavailable” to control visibility in the ordering system.  
+
+- **Search & Filter**  
+  - Filter products by category, status, and/or keyword.  
+
+### **4.2 Order Management**
+- **Create PI (Proforma Invoice)**  
+  - Select products from the product catalog.  
+  - Enter the quantity (in packs/boxes).  
+  - Automatically calculate total units, cartons, and total cost.  
+  - Add multiple products from different categories into a single PI.  
+  - Auto-generate PI Number.  
+
+- **Order Review & Export**  
+  - Review order details before finalizing.  
+  - Export to Excel using a predefined template.  
+  - Include dynamic fields: date, PI number, product images, total cost, etc.  
+
+- **Order History**  
+  - Save and view all previous orders with status and date.  
+
+### **4.3 User Management**
+- **Registration & Login**  
+  - Users can register with personal details (email, password).  
+  - Option to log in via Google OAuth.  
+  - Email verification process (optional, but recommended).  
+
+- **User Profile**  
+  - View and edit personal information.  
+  - Manage subscription tier (if any).  
+  - View invoice history.  
+  - Manage payment methods (if subscription or payment is needed).  
+
+### **4.4 Admin Dashboard**
+- **Page & Content Management**  
+  - Create and manage landing pages, pricing pages, FAQ, contact info, legal disclaimers, accessibility statements, cookie policies, and more.  
+  - Update text, images, and links dynamically.  
+
+- **User Management**  
+  - View user list, search users, edit user roles (Admin, Standard User).  
+  - Suspend or delete users if necessary.  
+
+- **Coupons & Promotions**  
+  - Create discount coupons or promotional offers.  
+  - Set usage limits, expiry dates, discount percentages, etc.  
+
+- **Support Ticket Management**  
+  - View and manage all support tickets submitted by users.  
+  - Update ticket status (open, in progress, resolved).  
+  - Communicate with users through an internal messaging system.  
+
+### **4.5 Support & Helpdesk**
+- **Ticket Submission**  
+  - Users can open a support ticket from their profile/dashboard.  
+  - Provide subject, description, attachments (optional).  
+
+- **Ticket Status**  
+  - Users can track the status of each ticket in their account.  
+
+### **4.6 Multi-Language Support**
+- **English & Hebrew**  
+  - No hard-coded strings.  
+  - Language toggle in the header (e.g., EN/HE).  
+  - All pages and UI elements fully translated.
+
+### **4.7 Security & Compliance**
+- **Authentication & Authorization**  
+  - Protect admin routes.  
+  - Use secure tokens (JWT) or NextAuth sessions.  
+
+- **Data Protection**  
+  - Store sensitive data in an encrypted format if needed.  
+  - Follow best practices for GDPR (if relevant) and local privacy regulations.  
+
+- **Accessibility**  
+  - Follow WCAG 2.1 AA standards for accessibility.  
+  - Provide an Accessibility Statement page.  
+
+---
+
+## **5. Data Model**
+
+### **5.1 Tables**
+
+1. **Products**  
+   - `id`: SERIAL (PK)  
+   - `sku`: TEXT (UNIQUE)  
+   - `name`: TEXT  
+   - `image_url`: TEXT  
+   - `colors`: TEXT[]  
+   - `sizes`: TEXT[]  
+   - `units_per_pack`: INT  
+   - `packing_info`: TEXT  
+   - `units_per_carton`: INT  
+   - `price_per_unit`: DECIMAL(10,2)  
+   - `category`: TEXT  
+   - `status`: TEXT (Available/Unavailable)  
+
+2. **Orders**  
+   - `id`: SERIAL (PK)  
+   - `pi_number`: TEXT (UNIQUE)  
+   - `created_at`: TIMESTAMP  
+   - `total_amount`: DECIMAL(10,2)  
+
+3. **Order_Items**  
+   - `id`: SERIAL (PK)  
+   - `order_id`: INT (FK to Orders.id)  
+   - `product_id`: INT (FK to Products.id)  
+   - `quantity`: INT (in packs)  
+   - `total_units`: INT (calculated by `quantity * units_per_pack`)  
+   - `price`: DECIMAL(10,2) (calculated by `total_units * price_per_unit`)  
+
+4. **Users**  
+   - `id`: SERIAL (PK)  
+   - `email`: TEXT (UNIQUE)  
+   - `password_hash`: TEXT (nullable if using OAuth)  
+   - `name`: TEXT  
+   - `role`: TEXT (Admin/User)  
+   - `created_at`: TIMESTAMP  
+
+5. **Tickets** (for support)  
+   - `id`: SERIAL (PK)  
+   - `user_id`: INT (FK to Users.id)  
+   - `subject`: TEXT  
+   - `description`: TEXT  
+   - `status`: TEXT (Open/In Progress/Resolved)  
+   - `created_at`: TIMESTAMP  
+
+6. **Coupons** (optional)  
+   - `id`: SERIAL (PK)  
+   - `code`: TEXT (UNIQUE)  
+   - `description`: TEXT  
+   - `discount_percentage`: DECIMAL(5,2)  
+   - `expiry_date`: TIMESTAMP  
+   - `usage_limit`: INT  
+   - `times_used`: INT  
+
+---
+
+## **6. Pages & User Flows**
+
+Below is a high-level outline of the primary pages and recommended content structure. For each page, we’ll specify the key elements and any dynamic or interactive features.
+
+### **6.1 Landing Page (Homepage)**
+- **Hero Section**  
+  - Headline: “Transform Your Supplier Order Management with One Click.”  
+  - Subheadline: Short description of the main value proposition.  
+  - CTA Button: “Streamline Your Orders Now!”  
+
+- **Key Features / USPs**  
+  - 3-4 bullet points or cards highlighting:  
+    1. Automated PI Generation  
+    2. Centralized Product Catalog  
+    3. Real-time Order Tracking  
+    4. Easy Excel Exports  
+
+- **How It Works**  
+  - Brief 3-step process graphic or textual explanation.  
+
+- **Benefits Section**  
+  - Efficiency, Innovation, Transparency, Reliability.  
+
+- **Testimonials / Case Studies** (optional in first phase)  
+  - Real or sample testimonials about using FlexiPI.  
+
+- **Footer**  
+  - Links to Pricing, FAQ, Contact, Legal, Accessibility, etc.  
+  - Social media links (if applicable).
+
+### **6.2 Pricing Page**
+- **Pricing Tiers** (if relevant)  
+  - Basic, Pro, Enterprise, or any other structure.  
+  - Feature comparison table.  
+  - “Get Started” or “Buy Now” CTA.  
+
+### **6.3 FAQ Page**
+- Common questions and answers about:  
+  - Using the platform  
+  - Subscription and billing (if applicable)  
+  - Technical requirements  
+  - Support processes  
+
+### **6.4 Contact Page**
+- **Contact Form**  
+  - Name, Email, Message.  
+  - Optionally integrate with a ticketing system to create a support ticket automatically.  
+- **Company Information**  
+  - Address, phone number, email for support or sales (if relevant).  
+
+### **6.5 Legal Pages**
+- **Terms & Conditions**  
+- **Privacy Policy**  
+- **Cookie Policy**  
+- **Accessibility Statement**  
+
+### **6.6 User Dashboard (Post-Login)**
+- **Overview**  
+  - Display recent orders, tickets, or announcements.  
+
+- **Product Catalog**  
+  - Search and filter products.  
+  - Add quantities, create new orders.  
+
+- **Order Creation**  
+  - Step-by-step form to select products, add quantities, review totals.  
+  - Option to export PI to Excel.  
+
+- **Order History**  
+  - List of past orders with status, creation date, total amount.  
+  - View order details.  
+
+- **Profile Management**  
+  - Update personal details, password, language preference.  
+  - Manage subscription, payment methods, invoices (if applicable).  
+
+- **Support Tickets**  
+  - View open/closed tickets.  
+  - Create new ticket.  
+
+### **6.7 Admin Dashboard**
+- **Dashboard Home**  
+  - Key metrics: number of orders, new signups, open tickets, etc.  
+
+- **Product Management**  
+  - Add/Edit/Remove products.  
+  - Manage categories and product statuses.  
+
+- **Order Management**  
+  - View all orders.  
+  - Manually update order statuses if needed.  
+
+- **User Management**  
+  - List all users, roles, status.  
+  - Edit user details, reset passwords, suspend users.  
+
+- **Content Management**  
+  - Edit dynamic pages (Landing, Pricing, FAQ, etc.) with a simple WYSIWYG editor.  
+
+- **Coupons & Promotions**  
+  - Create new coupon codes, set discount percentages, expiry, usage limits.  
+
+- **Support Ticket Management**  
+  - View all tickets, assign them to staff, mark as resolved.  
+
+---
+
+## **7. Implementation Steps (No-Code/Low-Code Generator Guidelines)**
+
+> The following breakdown assumes you are using a no-code or low-code tool that can generate React/Next.js code. Each step should be configured carefully within the generator to ensure the correct data models, pages, and logic are created.
+
+### **Step 1: Set Up the Project**
+1. **Initialize the Next.js 15 + React 19 project** with Tailwind CSS 3.5 and [shadcn/ui](https://ui.shadcn.com/).  
+2. **Configure Prisma** to connect to Supabase (PostgreSQL).  
+3. **Install i18n library** for multi-language support (e.g., `next-intl` or `react-i18next`).  
+
+### **Step 2: Define the Data Models in the Generator**
+1. **Products** – with all fields (SKU, name, image, etc.).  
+2. **Orders** – with PI number, created_at, total_amount.  
+3. **Order_Items** – linked to Orders and Products.  
+4. **Users** – with fields for email, password (or OAuth), name, role, etc.  
+5. **Tickets** – for support management.  
+6. **Coupons** – if implementing discounts.  
+
+### **Step 3: Configure Authentication**
+1. **Enable Email/Password** registration.  
+2. **Enable Google OAuth** using a provider in NextAuth (or a similar solution).  
+3. **Protect Admin routes** (only accessible to users with role=“Admin”).  
+
+### **Step 4: Create the Frontend Pages**
+1. **Landing Page**  
+   - **Hero Section:** Insert brand tagline, CTA button, brand colors.  
+   - **Feature Highlights:** Use card components to list key features.  
+   - **How It Works:** Step-by-step visuals.  
+   - **Footer:** Link to all relevant pages.  
+
+2. **Pricing Page**  
+   - **Pricing Tiers:** Use a pricing table or card layout.  
+   - **CTA:** Direct to signup or purchase.  
+
+3. **FAQ Page**  
+   - **Accordion** or collapsible sections for questions/answers.  
+
+4. **Contact Page**  
+   - **Contact Form** integrated with an email service or ticket system.  
+
+5. **Legal Pages** (Terms, Privacy, Cookie, Accessibility)  
+   - **Static content** stored in the database or in language files.  
+
+6. **Dashboard (User Area)**  
+   - **Product Catalog:** List or grid with search/filter.  
+   - **Order Creation:** Interactive form with dynamic calculations.  
+   - **Order History:** Table showing past orders, link to details.  
+   - **Profile Management:** Form to update user info.  
+   - **Support Tickets:** Table of user’s tickets, button to create new.  
+
+7. **Admin Dashboard**  
+   - **Overview:** Key metrics.  
+   - **Product Management:** CRUD pages.  
+   - **Order Management:** Table of orders, ability to edit.  
+   - **User Management:** List users, roles, actions.  
+   - **Content Management:** WYSIWYG or text fields for landing, pricing, FAQ content.  
+   - **Coupons & Promotions:** CRUD for coupons.  
+   - **Support Ticket Management:** View and update all tickets.  
+
+### **Step 5: Implement Multi-Language Support**
+1. **Create Language Files** (e.g., `en.json`, `he.json`) containing all text strings.  
+2. **Use i18n Hooks** in components to display the correct language based on user preference.  
+3. **Provide a Language Switch** in the header or user settings.  
+
+### **Step 6: Integrate Excel Export**
+1. **Install `exceljs` or `xlsx`**.  
+2. **Create a server-side function** (Next.js API Route) to:  
+   - Generate a workbook with a custom template.  
+   - Insert dynamic data (order details, product images, totals).  
+   - Return the file as a downloadable response.  
+
+### **Step 7: Test & QA**
+1. **Functional Testing** – Ensure all CRUD operations work for products, orders, users, tickets.  
+2. **Cross-Browser Testing** – Verify responsiveness and compatibility across browsers.  
+3. **Language Testing** – Check correct text appears in Hebrew and English.  
+4. **Security Testing** – Validate user role protections, no unauthorized data access.  
+5. **Performance Testing** – Confirm the system can handle typical eCommerce-scale orders and product catalogs.  
+
+### **Step 8: Deployment**
+1. **Choose Hosting** – Vercel (preferred for Next.js) or other container-based hosting.  
+2. **Configure Environment Variables** – For DB connection, OAuth secrets, etc.  
+3. **Migrate Database** – Run Prisma migrations on Supabase.  
+4. **Go Live** – Final domain setup, SSL, production environment checks.  
+
+### **Step 9: Maintenance & Future Enhancements**
+1. **Analytics** – Integrate Google Analytics or similar for usage tracking.  
+2. **Notifications** – Add email/SMS notifications for order status updates or ticket responses.  
+3. **Advanced Reporting** – Provide analytics on supplier performance, product popularity, etc.  
+4. **Mobile App** – Potential future extension for iOS/Android.  
+
+---
+
+## **8. Timeline & Roadmap**
+
+| **Phase**              | **Milestone**                                        | **Estimated Duration** |
+|------------------------|------------------------------------------------------|------------------------|
+| **Phase 1**           | Project Setup & Basic Landing Page                   | 1-2 weeks             |
+| **Phase 2**           | Product Catalog, Orders, Excel Export               | 2-3 weeks             |
+| **Phase 3**           | Admin Dashboard, User Profiles, Authentication       | 2-3 weeks             |
+| **Phase 4**           | Multi-language Support (EN/HE)                       | 1-2 weeks             |
+| **Phase 5**           | Support Tickets, Coupons, Additional Admin Features  | 2 weeks               |
+| **Phase 6**           | Testing & QA                                         | 1-2 weeks             |
+| **Phase 7**           | Launch & Post-Launch Maintenance                     | Ongoing               |
+
+---
+
+## **9. Additional Notes & Recommendations**
+
+- **Focus on the Landing Page First:** The immediate priority is to rebuild the landing page to look professional, highlight the value proposition for eCommerce store owners, and serve as a strong marketing funnel.  
+- **Keep Design Minimal & Modern:** Leverage Tailwind CSS and shadcn UI for a clean, consistent look aligned with the FlexiPI brand.  
+- **Ensure Responsiveness:** Test breakpoints thoroughly—desktop, tablet, and mobile.  
+- **Use Consistent Branding:** Apply the three core colors (Deep Teal, Golden Orange, Dark Gray) throughout the site, maintaining brand consistency.  
+- **Scalability:** Keep in mind potential future growth (more advanced analytics, third-party integrations, etc.). The architecture should allow easy addition of new features.  
+
+---
+
+## **10. Conclusion**
+
+FlexiPI aims to be the go-to platform for businesses seeking a streamlined solution to manage product catalogs, place orders with suppliers, and generate professional PIs in seconds. By following this PRD, the development (or no-code generation) process will be systematic, ensuring a robust, scalable, and user-friendly platform that delivers on its promise: **“Seamless Supplier Orders, Simplified.”**
+
+**End of Document**

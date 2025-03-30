@@ -11,6 +11,7 @@
     "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
+    "@formatjs/intl-localematcher": "^0.6.1",
     "@fortune-sheet/react": "^1.0.2",
     "@hookform/resolvers": "^3.3.4",
     "@prisma/client": "^6.5.0",
@@ -61,9 +62,12 @@
     "date-fns": "^3.4.0",
     "embla-carousel-react": "^8.0.0",
     "exceljs": "^4.4.0",
+    "i18next": "^24.2.3",
+    "i18next-resources-to-backend": "^1.2.1",
     "input-otp": "^1.1.0",
     "jszip": "^3.10.1",
     "lucide-react": "^0.482.0",
+    "negotiator": "^1.0.0",
     "next": "^15.2.4",
     "next-themes": "^0.2.1",
     "react": "^19.0.0",
@@ -71,6 +75,7 @@
     "react-day-picker": "^9.6.3",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.51.0",
+    "react-i18next": "^15.4.1",
     "react-icons": "^5.5.0",
     "react-resizable-panels": "^2.0.9",
     "recharts": "^2.12.2",
@@ -84,6 +89,7 @@
   },
   "devDependencies": {
     "@types/exceljs": "^0.5.3",
+    "@types/negotiator": "^0.6.3",
     "@types/node": "^20.17.27",
     "@types/react": "^19.0.12",
     "@types/react-dom": "^19.0.4",
